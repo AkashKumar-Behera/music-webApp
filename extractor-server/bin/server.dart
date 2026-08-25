@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_cors_headers/shelf_cors_headers.dart';
@@ -92,7 +93,7 @@ class StreamCacheEntry {
 
 final Map<String, StreamCacheEntry> _streamCache = {};
 
-// YouTubeExplode Resolver with multiple mobile/TV Innertube clients (iOS, Android Music, Android VR, VisionOS)
+// 1. YouTubeExplode Manifest Extraction
 Future<StreamCacheEntry?> _resolveViaYoutubeExplode(String videoId) async {
   final clientSets = [
     [YoutubeApiClient.ios],
@@ -131,18 +132,18 @@ Future<StreamCacheEntry?> _resolveViaYoutubeExplode(String videoId) async {
           expiresAt: DateTime.now().add(const Duration(hours: 3)),
         );
       }
-    } catch (e) {
+    } catch (_) {
       continue;
     }
   }
 
-  // Fallback: Default client extraction
+  // Fallback: Default without ytClients
   try {
     final manifest = await yt.videos.streamsClient.getManifest(videoId);
     final audioStreams = manifest.audioOnly;
     if (audioStreams.isNotEmpty) {
       final bestAudio = audioStreams.withHighestBitrate();
-      print('[Extractor Success] Resolved stream for $videoId using default client');
+      print('[Extractor Success] Resolved stream for $videoId using default manifest');
       return StreamCacheEntry(
         streamUri: bestAudio.url,
         container: bestAudio.container.name,
@@ -152,15 +153,119 @@ Future<StreamCacheEntry?> _resolveViaYoutubeExplode(String videoId) async {
       );
     }
   } catch (e) {
-    print('[Extractor Info] All YoutubeExplode clients exhausted for $videoId: $e');
+    print('[Extractor Info] YoutubeExplode error for $videoId: $e');
   }
 
   return null;
 }
 
-// Master Audio Resolver
+// 2. JioSaavn Search Fallback
+Future<StreamCacheEntry?> _resolveViaJioSaavn(String query) async {
+  if (query.trim().isEmpty || query.trim() == 'Track') return null;
+
+  final saavnMirrors = [
+    'https://jiosaavn-api-private.vercel.app/api/search/songs',
+    'https://saavn.me/api/search/songs',
+    'https://saavn.dev/api/search/songs',
+  ];
+
+  for (final mirror in saavnMirrors) {
+    try {
+      final uri = Uri.parse(mirror).replace(queryParameters: {'query': query, 'limit': '5'});
+      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final results = (data['data']?['results'] as List? ??
+            data['results'] as List? ??
+            []);
+
+        if (results.isNotEmpty) {
+          final firstSong = results.first as Map;
+          final downloadUrls = (firstSong['downloadUrl'] as List? ??
+              firstSong['media_url'] as List? ??
+              []);
+
+          if (downloadUrls.isNotEmpty) {
+            String? targetUrl;
+            if (downloadUrls.first is Map) {
+              final best = downloadUrls.lastWhere(
+                (u) => u['quality'] == '320kbps' || u['quality'] == '160kbps',
+                orElse: () => downloadUrls.last,
+              );
+              targetUrl = best['url']?.toString();
+            } else {
+              targetUrl = downloadUrls.last.toString();
+            }
+
+            if (targetUrl != null && targetUrl.isNotEmpty) {
+              print('[Extractor Fallback] Resolved via JioSaavn ($mirror) for "$query"');
+              return StreamCacheEntry(
+                streamUri: Uri.parse(targetUrl),
+                container: 'mp4',
+                bitrateKbps: 320,
+                sizeBytes: 0,
+                expiresAt: DateTime.now().add(const Duration(hours: 6)),
+              );
+            }
+          }
+        }
+      }
+    } catch (_) {
+      continue;
+    }
+  }
+  return null;
+}
+
+// 3. Cobalt Audio Resolver Fallback
+Future<StreamCacheEntry?> _resolveViaCobalt(String videoId) async {
+  final cobaltInstances = [
+    'https://co.wuk.sh',
+    'https://api.cobalt.tools',
+  ];
+
+  for (final host in cobaltInstances) {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$host/'),
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'url': 'https://www.youtube.com/watch?v=$videoId',
+              'downloadMode': 'audio',
+              'audioFormat': 'mp3',
+            }),
+          )
+          .timeout(const Duration(seconds: 4));
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final streamUrl = data['url']?.toString();
+        if (streamUrl != null && streamUrl.isNotEmpty) {
+          print('[Extractor Fallback] Resolved via Cobalt ($host) for $videoId');
+          return StreamCacheEntry(
+            streamUri: Uri.parse(streamUrl),
+            container: 'mp3',
+            bitrateKbps: 320,
+            sizeBytes: 0,
+            expiresAt: DateTime.now().add(const Duration(hours: 2)),
+          );
+        }
+      }
+    } catch (_) {
+      continue;
+    }
+  }
+  return null;
+}
+
+// Master Audio Resolver across Engines
 Future<StreamCacheEntry?> _resolveAudioStream(
   String videoId, {
+  String searchHint = '',
   bool bypassCache = false,
 }) async {
   if (!bypassCache && _streamCache.containsKey(videoId)) {
@@ -171,7 +276,19 @@ Future<StreamCacheEntry?> _resolveAudioStream(
     _streamCache.remove(videoId);
   }
 
-  final entry = await _resolveViaYoutubeExplode(videoId);
+  // Tier 1: YouTubeExplode Native Manifest
+  var entry = await _resolveViaYoutubeExplode(videoId);
+
+  // Tier 2: JioSaavn Search by Title / Artist
+  if (entry == null && searchHint.isNotEmpty) {
+    entry = await _resolveViaJioSaavn(searchHint);
+  }
+
+  // Tier 3: Cobalt Resolver
+  if (entry == null) {
+    entry = await _resolveViaCobalt(videoId);
+  }
+
   if (entry != null) {
     _streamCache[videoId] = entry;
   }
@@ -236,6 +353,9 @@ void main(List<String> args) async {
   // 3. Audio Streaming Engine with Range / HTTP 206 Support
   app.get('/stream', (Request request) async {
     final videoId = request.url.queryParameters['id'];
+    final title = request.url.queryParameters['title'] ?? '';
+    final artist = request.url.queryParameters['artist'] ?? '';
+    final searchHint = '$title $artist'.trim();
 
     if (videoId == null || videoId.length != 11) {
       return Response.badRequest(
@@ -244,7 +364,7 @@ void main(List<String> args) async {
       );
     }
 
-    var entry = await _resolveAudioStream(videoId);
+    var entry = await _resolveAudioStream(videoId, searchHint: searchHint);
     if (entry == null) {
       return Response.internalServerError(
         body: jsonEncode({'error': 'Failed to extract audio stream for $videoId'}),
@@ -280,7 +400,7 @@ void main(List<String> args) async {
     if (cdnResponse == null || cdnResponse.statusCode == 403 || cdnResponse.statusCode == 410) {
       print('[Stream Refresh] Stream failed (${cdnResponse?.statusCode}) for $videoId, re-resolving...');
       _streamCache.remove(videoId);
-      entry = await _resolveAudioStream(videoId, bypassCache: true);
+      entry = await _resolveAudioStream(videoId, searchHint: searchHint, bypassCache: true);
       if (entry != null) {
         cdnResponse = await fetchFromCdn(entry.streamUri);
       }
@@ -301,7 +421,9 @@ void main(List<String> args) async {
     };
 
     final contentType = cdnResponse.headers.value('content-type') ??
-        (entry.container.toLowerCase() == 'webm' ? 'audio/webm' : 'audio/mp4');
+        (entry.container.toLowerCase() == 'webm'
+            ? 'audio/webm'
+            : (entry.container.toLowerCase() == 'mp3' ? 'audio/mpeg' : 'audio/mp4'));
     responseHeaders['Content-Type'] = contentType;
 
     final contentRange = cdnResponse.headers.value('content-range');
