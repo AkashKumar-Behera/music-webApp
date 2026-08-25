@@ -4,14 +4,11 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 String _loadCookies() {
   final candidatePaths = [
-    Platform.environment['COOKIES_FILE'],
     '/home/ubuntu/cookies.txt',
     'cookies.txt',
-    '../cookies.txt',
   ];
 
   for (final path in candidatePaths) {
-    if (path == null) continue;
     final file = File(path);
     if (file.existsSync()) {
       try {
@@ -34,12 +31,9 @@ String _loadCookies() {
         }
         if (cookieMap.isNotEmpty) {
           final cookieStr = cookieMap.entries.map((e) => '${e.key}=${e.value}').join('; ');
-          print('🍪 Loaded ${cookieMap.length} YouTube cookies from $path');
           return cookieStr;
         }
-      } catch (e) {
-        print('⚠️ Error parsing cookies from $path: $e');
-      }
+      } catch (_) {}
     }
   }
   return 'CONSENT=YES+cb';
@@ -61,26 +55,37 @@ class CookieYoutubeHttpClient extends YoutubeHttpClient {
 }
 
 void main() async {
-  print('Running YouTubeExplode diagnostics with COOKIES...');
   final cookieStr = _loadCookies();
-  final yt = YoutubeExplode(
-    httpClient: CookieYoutubeHttpClient(cookieStr),
-  );
-  try {
-    print('Fetching Stream Manifest with requireWatchPage: false & ytClients: [ios]...');
-    final manifest = await yt.videos.streamsClient.getManifest(
-      'kJQP7kiw5Fk',
-      ytClients: [YoutubeApiClient.ios],
-      requireWatchPage: false,
-    );
-    print('Audio Streams count: ${manifest.audioOnly.length}');
-    for (final s in manifest.audioOnly) {
-      print('STREAM SUCCESS: ${s.tag} | ${s.container.name} | ${s.bitrate.bitsPerSecond} bps | url: ${s.url.toString().substring(0, 60)}...');
+  final yt = YoutubeExplode(httpClient: CookieYoutubeHttpClient(cookieStr));
+
+  final testClients = {
+    'TV': [YoutubeApiClient.tv],
+    'Android VR': [YoutubeApiClient.androidVr],
+    'VisionOS': [YoutubeApiClient.visionos],
+    'Android Music': [YoutubeApiClient.androidMusic],
+    'Android': [YoutubeApiClient.android],
+    'Safari': [YoutubeApiClient.safari],
+    'MWeb': [YoutubeApiClient.mweb],
+    'MediaConnect': [YoutubeApiClient.mediaConnect],
+    'Default (null)': null,
+  };
+
+  for (final entry in testClients.entries) {
+    print('\nTesting client: ${entry.key}...');
+    try {
+      final manifest = await yt.videos.streamsClient.getManifest(
+        'kJQP7kiw5Fk',
+        ytClients: entry.value,
+        requireWatchPage: false,
+      );
+      print('>>> SUCCESS with ${entry.key}! Audio count: ${manifest.audioOnly.length}');
+      if (manifest.audioOnly.isNotEmpty) {
+        final first = manifest.audioOnly.first;
+        print('    Bitrate: ${first.bitrate} | URL: ${first.url.toString().substring(0, 70)}...');
+      }
+    } catch (e) {
+      print('    Failed with ${entry.key}: $e');
     }
-  } catch (e, st) {
-    print('Error: $e');
-    print('Stack: $st');
-  } finally {
-    yt.close();
   }
+  yt.close();
 }
