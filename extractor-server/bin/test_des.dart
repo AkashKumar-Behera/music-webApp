@@ -5,11 +5,11 @@ import 'package:http/http.dart' as http;
 String? decryptSaavnUrl(String encB64) {
   try {
     final key = utf8.encode('38343638');
-    final des = DES(key: key, mode: DESMode.ECB, paddingType: DESPaddingType.None);
+    final des = DES(key: key, mode: DESMode.ECB, paddingType: DESPaddingType.PKCS7);
     final encryptedBytes = base64Decode(encB64);
     final decryptedBytes = des.decrypt(encryptedBytes);
-    final rawText = String.fromCharCodes(decryptedBytes);
-    final match = RegExp(r'https?://[^\x00-\x1F\x7F]+').firstMatch(rawText);
+    final text = utf8.decode(decryptedBytes, allowMalformed: true).trim();
+    final match = RegExp(r'https?://[^\s\x00-\x1F\x7F]+').firstMatch(text);
     if (match != null) {
       var url = match.group(0)!;
       var url320 = url.replaceAll('_96.mp4', '_320.mp4').replaceAll('_160.mp4', '_320.mp4');
@@ -44,8 +44,10 @@ void main() async {
   final detailsUri = Uri.parse('https://www.jiosaavn.com/api.php?__call=song.getDetails&pids=$songId&_format=json&_marker=0&ctx=android');
   final dres = await http.get(detailsUri, headers: {'User-Agent': 'Mozilla/5.0'});
   final details = jsonDecode(dres.body);
-  final songObj = details[songId];
-  final encUrl = songObj?['encrypted_media_url'];
+  final songObj = details[songId] as Map?;
+  print('SongObj Keys: ${songObj?.keys.toList()}');
+  final encUrl = songObj?['encrypted_media_url'] ?? songObj?['more_info']?['encrypted_media_url'];
+  print('Encrypted URL: $encUrl');
 
   if (encUrl != null) {
     final streamUrl = decryptSaavnUrl(encUrl.toString());
