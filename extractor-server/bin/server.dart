@@ -360,42 +360,15 @@ void main(List<String> args) async {
       );
     }
 
-    final clientRangeHeader = request.headers['range'];
-
-    try {
-      final curlArgs = [
-        '--proxy',
-        'socks5://127.0.0.1:40000',
-        '-s',
-        '-L',
-        if (clientRangeHeader != null) ...['-H', 'Range: $clientRangeHeader'],
-        entry.streamUri.toString(),
-      ];
-
-      final process = await Process.start('curl', curlArgs);
-
-      final responseHeaders = <String, String>{
+    // 302 Redirect to direct CDN stream
+    return Response.found(
+      entry.streamUri,
+      headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Range',
-        'Accept-Ranges': 'bytes',
-        'Cache-Control': 'public, max-age=7200',
-        'Content-Type': entry.container.toLowerCase() == 'webm'
-            ? 'audio/webm'
-            : (entry.container.toLowerCase() == 'mp3' ? 'audio/mpeg' : 'audio/mp4'),
-      };
-
-      return Response(
-        clientRangeHeader != null ? 206 : 200,
-        body: process.stdout,
-        headers: responseHeaders,
-      );
-    } catch (e) {
-      print('[Stream Error] $e');
-      return Response.internalServerError(
-        body: jsonEncode({'error': e.toString()}),
-        headers: {'content-type': 'application/json'},
-      );
-    }
+        'Cache-Control': 'public, max-age=3600',
+      },
+    );
   });
 
   final handler = const Pipeline()

@@ -16,17 +16,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Valid 11-character Video ID is required' }, { status: 400 });
     }
 
-    const range = req.headers.get('range');
-    const fetchHeaders: HeadersInit = {
-      'User-Agent':
-        req.headers.get('user-agent') ||
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-    };
-
-    if (range && !isDownload) {
-      fetchHeaders['Range'] = range;
-    }
-
     const hintParams = new URLSearchParams();
     hintParams.set('id', videoId);
     if (rawTitle) hintParams.set('title', rawTitle);
@@ -34,45 +23,41 @@ export async function GET(req: NextRequest) {
 
     const extractorUrl = `${EXTRACTOR_SERVER_URL}/stream?${hintParams.toString()}`;
     const extractorResponse = await fetch(extractorUrl, {
-      headers: fetchHeaders,
+      redirect: 'manual',
     });
 
-    if (!extractorResponse.ok && extractorResponse.status !== 206) {
+    // 1. Direct 302 Redirect to Google/Akamai CDN for instant client playback
+    const streamLocation = extractorResponse.headers.get('location');
+    if (streamLocation && !isDownload) {
+      return NextResponse.redirect(streamLocation, 302);
+    }
+
+    // 2. If download is requested or no redirect
+    if (isDownload && streamLocation) {
+      const cleanFilename = `${rawArtist ? `${rawArtist} - ` : ''}${rawTitle}.m4a`.replace(/[/\\?%*:|"<>]/g, '_');
+      const safeFilename = encodeURIComponent(cleanFilename);
+      const cdnRes = await fetch(streamLocation);
+      return new Response(cdnRes.body, {
+        status: 200,
+        headers: {
+          'Content-Type': 'audio/mp4',
+          'Content-Disposition': `attachment; filename="${cleanFilename.replace(/"/g, '')}"; filename*=UTF-8''${safeFilename}`,
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    if (!extractorResponse.ok && extractorResponse.status !== 302) {
       const errorText = await extractorResponse.text().catch(() => 'Extractor failed');
       return NextResponse.json(
-        { error: `Extractor service error (${extractorResponse.status}): ${errorText}` },
+        { error: `Extractor error (${extractorResponse.status}): ${errorText}` },
         { status: extractorResponse.status }
       );
     }
 
-    const responseHeaders = new Headers();
-    responseHeaders.set('Content-Type', extractorResponse.headers.get('content-type') || 'audio/mp4');
-    responseHeaders.set('Access-Control-Allow-Origin', '*');
-    responseHeaders.set('Accept-Ranges', 'bytes');
-    responseHeaders.set('Cache-Control', 'public, max-age=7200');
-
-    if (isDownload) {
-      const cleanFilename = `${rawArtist ? `${rawArtist} - ` : ''}${rawTitle}.mp3`.replace(/[/\\?%*:|"<>]/g, '_');
-      const safeFilename = encodeURIComponent(cleanFilename);
-      responseHeaders.set(
-        'Content-Disposition',
-        `attachment; filename="${cleanFilename.replace(/"/g, '')}"; filename*=UTF-8''${safeFilename}`
-      );
-    }
-
-    if (extractorResponse.headers.get('content-range')) {
-      responseHeaders.set('Content-Range', extractorResponse.headers.get('content-range')!);
-    }
-    if (extractorResponse.headers.get('content-length')) {
-      responseHeaders.set('Content-Length', extractorResponse.headers.get('content-length')!);
-    }
-
-    return new Response(extractorResponse.body, {
-      status: isDownload ? 200 : extractorResponse.status,
-      headers: responseHeaders,
-    });
+    return NextResponse.json({ error: 'Stream URL not available' }, { status: 500 });
   } catch (error: any) {
-    console.error('Stream Proxy Error:', error);
+    console.error('Stream Route Error:', error);
     return NextResponse.json({ error: error.message || 'Stream extraction failed' }, { status: 500 });
   }
 }
