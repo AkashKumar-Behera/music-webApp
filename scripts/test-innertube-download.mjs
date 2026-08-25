@@ -1,28 +1,27 @@
 import { Innertube, UniversalCache } from 'youtubei.js';
 
-async function testDownload() {
-  console.log('Testing Innertube download stream for kJQP7kiw5Fk...');
-  try {
-    const yt = await Innertube.create({
-      cache: new UniversalCache(false),
-      generate_session_locally: true,
-      client_type: 'ANDROID',
-    });
-    
-    console.log('Fetching info with ANDROID client...');
-    const info = await yt.getInfo('kJQP7kiw5Fk');
-    const stream = await info.download({ type: 'audio', quality: 'best' });
-    console.log('Got download stream! Reading first chunk...');
-    const reader = stream.getReader();
-    const { value, done } = await reader.read();
-    if (value && value.length > 0) {
-      console.log(`🎉 SUCCESS! Read first chunk of ${value.length} audio bytes from stream!`);
-    } else {
-      console.log('Stream finished without chunks');
+async function testClients() {
+  const clients = ['TV_EMBEDDED', 'WEB_EMBEDDED', 'MWEB', 'WEB'];
+  for (const c of clients) {
+    try {
+      console.log(`\nTesting client: ${c}...`);
+      const yt = await Innertube.create({
+        cache: new UniversalCache(false),
+        generate_session_locally: true,
+        client_type: c,
+      });
+      const info = await yt.getInfo('kJQP7kiw5Fk');
+      const audioStreams = info.streaming_data?.adaptive_formats?.filter(f => f.has_audio && !f.has_video);
+      console.log(`[${c}] Audio streams count:`, audioStreams?.length);
+      if (audioStreams && audioStreams.length > 0) {
+        const streamUrl = audioStreams[0].decipher(yt.session.player) || audioStreams[0].url;
+        console.log(`🎉 [${c}] STREAM URL:`, streamUrl?.substring(0, 100));
+        break;
+      }
+    } catch (e) {
+      console.log(`[${c}] Failed:`, e.message || e);
     }
-  } catch (e) {
-    console.error('Download error:', e.message || e);
   }
 }
 
-testDownload();
+testClients();
