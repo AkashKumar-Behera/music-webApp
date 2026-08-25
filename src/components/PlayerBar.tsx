@@ -73,9 +73,19 @@ export const PlayerBar: React.FC = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    let retryCount = 0;
     const initYT = () => {
       if (!window.YT || !window.YT.Player) return;
       if (ytPlayerRef.current) return;
+
+      const target = document.getElementById('hidden-yt-player');
+      if (!target) {
+        if (retryCount < 30) {
+          retryCount++;
+          setTimeout(initYT, 100);
+        }
+        return;
+      }
 
       try {
         ytPlayerRef.current = new window.YT.Player('hidden-yt-player', {
@@ -96,6 +106,15 @@ export const PlayerBar: React.FC = () => {
               setIsYtReady(true);
               const vol = isMuted ? 0 : Math.round(volume * 100);
               event.target.setVolume(vol);
+
+              const state = usePlayerStore.getState();
+              if (state.currentTrack && state.isPlaying) {
+                event.target.loadVideoById({
+                  videoId: state.currentTrack.id,
+                  startSeconds: 0,
+                });
+                event.target.playVideo();
+              }
             },
             onStateChange: (event: any) => {
               if (event.data === window.YT.PlayerState.PLAYING) {
@@ -318,11 +337,8 @@ export const PlayerBar: React.FC = () => {
     document.body.removeChild(a);
   };
 
-  if (!currentTrack) return null;
-
-  // Percentage Calculations
   const currentVolPercent = isMuted ? 0 : Math.round(volume * 100);
-  const totalDuration = duration || currentTrack.duration || 1;
+  const totalDuration = currentTrack ? (duration || currentTrack.duration || 1) : 1;
   const seekProgress = Math.min(100, Math.max(0, (currentTime / totalDuration) * 100));
 
   return (
@@ -374,13 +390,15 @@ export const PlayerBar: React.FC = () => {
         onEnded={handleTrackEnded}
       />
 
-      {/* ========================================================================= */}
-      {/* 📱 MOBILE MINI-PLAYER (Visible on screens < 768px)                       */}
-      {/* ========================================================================= */}
-      <div
-        onClick={toggleFullScreenPlayer}
-        className="fixed bottom-2 left-2 right-2 md:hidden z-50 bg-zinc-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-2.5 flex flex-col shadow-2xl cursor-pointer select-none"
-      >
+      {currentTrack && (
+        <>
+          {/* ========================================================================= */}
+          {/* 📱 MOBILE MINI-PLAYER (Visible on screens < 768px)                       */}
+          {/* ========================================================================= */}
+          <div
+            onClick={toggleFullScreenPlayer}
+            className="fixed bottom-2 left-2 right-2 md:hidden z-50 bg-zinc-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-2.5 flex flex-col shadow-2xl cursor-pointer select-none"
+          >
         {/* Top 2px Progress Line */}
         <div className="absolute top-0 left-3 right-3 h-[2px] bg-white/10 rounded-full overflow-hidden">
           <div
@@ -630,6 +648,8 @@ export const PlayerBar: React.FC = () => {
           </div>
         </div>
       </div>
+        </>
+      )}
     </>
   );
 };
