@@ -183,33 +183,36 @@ export const PlayerBar: React.FC = () => {
   useEffect(() => {
     if (!currentTrack) return;
 
-    if (useYtEngine) {
-      if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
-        if (isPlaying) {
+    if (isPlaying) {
+      if (useYtEngine) {
+        if (audioRef.current) audioRef.current.pause();
+        if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
           ytPlayerRef.current.playVideo();
-        } else {
+        }
+      } else if (audioRef.current) {
+        if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
           ytPlayerRef.current.pauseVideo();
         }
-      }
-      return;
-    }
-
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          console.warn('Audio playback error / switching to YT engine:', error);
-          setUseYtEngine(true);
-          if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
-            ytPlayerRef.current.loadVideoById(currentTrack.id);
-            ytPlayerRef.current.playVideo();
-          }
-        });
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.warn('Audio playback error / switching to YT engine:', error);
+            setUseYtEngine(true);
+            if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
+              ytPlayerRef.current.loadVideoById(currentTrack.id);
+              ytPlayerRef.current.playVideo();
+            }
+          });
+        }
       }
     } else {
-      audioRef.current.pause();
+      // Unconditionally pause BOTH engines when isPlaying is false
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+        ytPlayerRef.current.pauseVideo();
+      }
     }
   }, [isPlaying, currentTrack, useYtEngine]);
 
