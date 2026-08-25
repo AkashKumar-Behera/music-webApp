@@ -70,6 +70,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         isPlaying: true,
         isLoading: true,
         currentTime: 0,
+        duration: track.duration || 0,
       });
     } else {
       set({
@@ -77,6 +78,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         isPlaying: true,
         isLoading: true,
         currentTime: 0,
+        duration: track.duration || 0,
       });
     }
   },

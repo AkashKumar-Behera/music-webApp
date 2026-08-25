@@ -269,12 +269,28 @@ export const PlayerBar: React.FC = () => {
         preload="auto"
         onTimeUpdate={() => {
           if (!isDragging && audioRef.current) {
-            setCurrentTime(audioRef.current.currentTime);
+            const rawCurrent = audioRef.current.currentTime;
+            const knownDuration = (duration > 0 ? duration : currentTrack?.duration) || 0;
+            // Safari EOF safety check: If audio has reached real track length, end track
+            if (knownDuration > 0 && rawCurrent >= knownDuration - 0.5) {
+              handleTrackEnded();
+              return;
+            }
+            setCurrentTime(rawCurrent);
           }
         }}
         onLoadedMetadata={() => {
           if (audioRef.current) {
-            setDuration(audioRef.current.duration);
+            const rawDur = audioRef.current.duration;
+            const trackDur = currentTrack?.duration || 0;
+            // Fix iOS Safari SBR 2x duration bug: If raw audio duration is ~2x track duration, use exact track metadata duration
+            if (trackDur > 0 && (!rawDur || !isFinite(rawDur) || rawDur > trackDur * 1.3)) {
+              setDuration(trackDur);
+            } else if (rawDur && isFinite(rawDur) && rawDur > 0) {
+              setDuration(rawDur);
+            } else if (trackDur > 0) {
+              setDuration(trackDur);
+            }
             setIsLoading(false);
           }
         }}
