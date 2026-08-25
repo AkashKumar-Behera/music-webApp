@@ -179,14 +179,6 @@ export const LyricsModal: React.FC = () => {
                   if (audio) {
                     audio.currentTime = line.time;
                   }
-                  if (typeof window !== 'undefined') {
-                    try {
-                      const yt = (window as any).YT?.get?.('hidden-yt-player');
-                      if (yt && typeof yt.seekTo === 'function') {
-                        yt.seekTo(line.time, true);
-                      }
-                    } catch (e) {}
-                  }
                 }}
               >
                 {line.text}
