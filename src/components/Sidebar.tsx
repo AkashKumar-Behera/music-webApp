@@ -21,8 +21,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     <aside className="w-64 hidden md:flex flex-col h-[calc(100vh-88px)] glass border-r border-white/10 p-5 select-none">
       {/* Brand Header */}
       <div className="flex items-center gap-3 px-2 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-          <Sparkles className="w-5 h-5 text-black" />
+        <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-emerald-500/20 border border-white/10 flex-shrink-0 bg-zinc-900">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon.png" alt="CloudBeatz Logo" className="w-full h-full object-cover" />
         </div>
         <div>
           <h1 className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-zinc-200 to-emerald-400 bg-clip-text text-transparent">
