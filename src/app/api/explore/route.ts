@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getInnertube } from '@/lib/youtube';
 import { Track } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const yt = await getInnertube();
