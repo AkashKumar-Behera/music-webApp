@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
       fetchHeaders['Range'] = range;
     }
 
-    const extractorUrl = `${EXTRACTOR_SERVER_URL}/stream?id=${videoId}`;
+    const hintParams = new URLSearchParams();
+    hintParams.set('id', videoId);
+    if (rawTitle) hintParams.set('title', rawTitle);
+    if (rawArtist) hintParams.set('artist', rawArtist);
+
+    const extractorUrl = `${EXTRACTOR_SERVER_URL}/stream?${hintParams.toString()}`;
     const extractorResponse = await fetch(extractorUrl, {
       headers: fetchHeaders,
     });

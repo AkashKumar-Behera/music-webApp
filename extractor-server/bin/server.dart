@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_cors_headers/shelf_cors_headers.dart';
@@ -11,7 +12,6 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 final yt = YoutubeExplode();
 final httpClient = HttpClient();
 
-// In-memory cache for audio streams: videoId -> CacheEntry
 class StreamCacheEntry {
   final Uri streamUri;
   final String container;
@@ -32,21 +32,13 @@ class StreamCacheEntry {
 
 final Map<String, StreamCacheEntry> _streamCache = {};
 
-Future<StreamCacheEntry?> _resolveAudioStream(String videoId, {bool bypassCache = false}) async {
-  if (!bypassCache && _streamCache.containsKey(videoId)) {
-    final cached = _streamCache[videoId]!;
-    if (!cached.isExpired) {
-      return cached;
-    }
-    _streamCache.remove(videoId);
-  }
-
+// 1. YouTubeExplode Resolver
+Future<StreamCacheEntry?> _resolveViaYoutubeExplode(String videoId) async {
   try {
     final manifest = await yt.videos.streamsClient.getManifest(videoId);
     final audioStreams = manifest.audioOnly;
     if (audioStreams.isEmpty) return null;
 
-    // Prefer m4a/aac for universal HTML5 and iOS/Android playback compatibility
     AudioStreamInfo bestAudio;
     final mp4Audio = audioStreams.where(
       (s) => s.container.name.toLowerCase() == 'mp4' || s.container.name.toLowerCase() == 'm4a',
@@ -58,20 +50,192 @@ Future<StreamCacheEntry?> _resolveAudioStream(String videoId, {bool bypassCache 
       bestAudio = audioStreams.withHighestBitrate();
     }
 
-    final entry = StreamCacheEntry(
+    return StreamCacheEntry(
       streamUri: bestAudio.url,
       container: bestAudio.container.name,
       bitrateKbps: (bestAudio.bitrate.bitsPerSecond / 1000).round(),
       sizeBytes: bestAudio.size.totalBytes,
       expiresAt: DateTime.now().add(const Duration(hours: 3)),
     );
-
-    _streamCache[videoId] = entry;
-    return entry;
   } catch (e) {
-    print('[Extractor Error] Failed to resolve audio for $videoId: $e');
+    print('[Extractor Info] YoutubeExplode direct manifest error for $videoId: $e');
     return null;
   }
+}
+
+// 2. Piped / Invidious High-Speed API Mirrors
+Future<StreamCacheEntry?> _resolveViaPiped(String videoId) async {
+  final pipedInstances = [
+    'https://pipedapi.kavin.rocks',
+    'https://api.piped.privacydev.net',
+    'https://piped-api.garudalinux.org',
+    'https://api-piped.mha.fi',
+  ];
+
+  for (final base in pipedInstances) {
+    try {
+      final res = await http.get(Uri.parse('$base/streams/$videoId')).timeout(const Duration(seconds: 3));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final audioStreams = (data['audioStreams'] as List?) ?? [];
+        if (audioStreams.isNotEmpty) {
+          final stream = audioStreams.firstWhere(
+            (s) => (s['mimeType'] ?? '').toString().contains('mp4') || (s['format'] ?? '').toString().contains('M4A'),
+            orElse: () => audioStreams.first,
+          );
+          final urlStr = stream['url']?.toString();
+          if (urlStr != null && urlStr.startsWith('http')) {
+            print('[Extractor Info] Success resolving audio via Piped mirror ($base)');
+            return StreamCacheEntry(
+              streamUri: Uri.parse(urlStr),
+              container: stream['format']?.toString() ?? 'm4a',
+              bitrateKbps: stream['bitrate'] != null ? (stream['bitrate'] ~/ 1000) : 128,
+              sizeBytes: 0,
+              expiresAt: DateTime.now().add(const Duration(hours: 3)),
+            );
+          }
+        }
+      }
+    } catch (_) {
+      continue;
+    }
+  }
+  return null;
+}
+
+// 3. Cobalt Tools Resolver
+Future<StreamCacheEntry?> _resolveViaCobalt(String videoId) async {
+  final cobaltEndpoints = [
+    'https://co.wuk.sh',
+    'https://api.cobalt.tools',
+  ];
+
+  for (final endpoint in cobaltEndpoints) {
+    try {
+      final res = await http.post(
+        Uri.parse('$endpoint/'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'url': 'https://www.youtube.com/watch?v=$videoId',
+          'downloadMode': 'audio',
+          'audioFormat': 'mp3',
+        }),
+      ).timeout(const Duration(seconds: 3));
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final streamUrl = data['url']?.toString();
+        if (streamUrl != null && streamUrl.startsWith('http')) {
+          print('[Extractor Info] Success resolving audio via Cobalt ($endpoint)');
+          return StreamCacheEntry(
+            streamUri: Uri.parse(streamUrl),
+            container: 'mp3',
+            bitrateKbps: 320,
+            sizeBytes: 0,
+            expiresAt: DateTime.now().add(const Duration(hours: 2)),
+          );
+        }
+      }
+    } catch (_) {
+      continue;
+    }
+  }
+  return null;
+}
+
+// 4. JioSaavn Fallback Resolver by Song Title
+Future<StreamCacheEntry?> _resolveViaJioSaavn(String query) async {
+  if (query.trim().isEmpty) return null;
+  final mirrors = [
+    'https://saavn.dev/api/search/songs',
+    'https://saavn.me/api/search/songs',
+    'https://jiosaavn-api-private.vercel.app/api/search/songs',
+  ];
+
+  for (final mirror in mirrors) {
+    try {
+      final uri = Uri.parse('$mirror?query=${Uri.encodeComponent(query)}&limit=3');
+      final res = await http.get(uri).timeout(const Duration(seconds: 2));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final results = (data['data']?['results'] as List?) ?? (data['results'] as List?) ?? [];
+        if (results.isNotEmpty) {
+          final downloadUrls = (results.first['downloadUrl'] as List?) ?? (results.first['media_url'] as List?) ?? [];
+          if (downloadUrls.isNotEmpty) {
+            String? targetUrl;
+            if (downloadUrls.first is Map) {
+              final best = downloadUrls.lastWhere(
+                (u) => u['quality'] == '320kbps' || u['quality'] == '160kbps',
+                orElse: () => downloadUrls.last,
+              );
+              targetUrl = best['url']?.toString();
+            } else {
+              targetUrl = downloadUrls.last.toString();
+            }
+            if (targetUrl != null && targetUrl.startsWith('http')) {
+              print('[Extractor Info] Success resolving audio via JioSaavn ($mirror)');
+              return StreamCacheEntry(
+                streamUri: Uri.parse(targetUrl),
+                container: 'mp4',
+                bitrateKbps: 320,
+                sizeBytes: 0,
+                expiresAt: DateTime.now().add(const Duration(hours: 4)),
+              );
+            }
+          }
+        }
+      }
+    } catch (_) {
+      continue;
+    }
+  }
+  return null;
+}
+
+// Master Multi-Engine Audio Resolver
+Future<StreamCacheEntry?> _resolveAudioStream(
+  String videoId, {
+  bool bypassCache = false,
+  String searchHint = '',
+}) async {
+  if (!bypassCache && _streamCache.containsKey(videoId)) {
+    final cached = _streamCache[videoId]!;
+    if (!cached.isExpired) {
+      return cached;
+    }
+    _streamCache.remove(videoId);
+  }
+
+  // Engine 1: YouTubeExplode (Native Dart)
+  var entry = await _resolveViaYoutubeExplode(videoId);
+
+  // Engine 2: Piped / Invidious API
+  entry ??= await _resolveViaPiped(videoId);
+
+  // Engine 3: Cobalt Resolver
+  entry ??= await _resolveViaCobalt(videoId);
+
+  // Engine 4: JioSaavn Matcher (if query provided or video title accessible)
+  if (entry == null) {
+    String query = searchHint;
+    if (query.isEmpty) {
+      try {
+        final video = await yt.videos.get(videoId).timeout(const Duration(seconds: 2));
+        query = '${video.title} ${video.author}';
+      } catch (_) {}
+    }
+    if (query.isNotEmpty) {
+      entry = await _resolveViaJioSaavn(query);
+    }
+  }
+
+  if (entry != null) {
+    _streamCache[videoId] = entry;
+  }
+  return entry;
 }
 
 void main(List<String> args) async {
@@ -82,7 +246,7 @@ void main(List<String> args) async {
     return Response.ok(
       jsonEncode({
         'status': 'ok',
-        'service': 'CloudBeatz Dart Stream Extractor',
+        'service': 'CloudBeatz Multi-Engine Stream Extractor',
         'timestamp': DateTime.now().toIso8601String(),
         'cachedStreams': _streamCache.length,
       }),
@@ -90,7 +254,7 @@ void main(List<String> args) async {
     );
   });
 
-  // 2. Video info & available streams
+  // 2. Video info & stream metadata
   app.get('/info', (Request request) async {
     final videoId = request.url.queryParameters['id'];
     if (videoId == null || videoId.isEmpty) {
@@ -132,6 +296,8 @@ void main(List<String> args) async {
   // 3. Audio Streaming Engine with Range / HTTP 206 Support
   app.get('/stream', (Request request) async {
     final videoId = request.url.queryParameters['id'];
+    final hint = request.url.queryParameters['title'] ?? '';
+
     if (videoId == null || videoId.length != 11) {
       return Response.badRequest(
         body: jsonEncode({'error': 'Valid 11-character video ID is required'}),
@@ -139,10 +305,10 @@ void main(List<String> args) async {
       );
     }
 
-    var entry = await _resolveAudioStream(videoId);
+    var entry = await _resolveAudioStream(videoId, searchHint: hint);
     if (entry == null) {
       return Response.internalServerError(
-        body: jsonEncode({'error': 'Failed to extract audio stream for $videoId'}),
+        body: jsonEncode({'error': 'Failed to extract audio stream for $videoId across all engines'}),
         headers: {'content-type': 'application/json'},
       );
     }
@@ -168,11 +334,11 @@ void main(List<String> args) async {
 
     var cdnResponse = await fetchFromCdn(entry.streamUri);
 
-    // If stream URL is expired (403/410), refresh stream cache once
+    // If stream URL is expired (403/410), refresh stream cache
     if (cdnResponse == null || cdnResponse.statusCode == 403 || cdnResponse.statusCode == 410) {
-      print('[Stream Refresh] URL expired or 403 received for $videoId, refreshing manifest...');
+      print('[Stream Refresh] Stream failed (${cdnResponse?.statusCode}) for $videoId, re-resolving...');
       _streamCache.remove(videoId);
-      entry = await _resolveAudioStream(videoId, bypassCache: true);
+      entry = await _resolveAudioStream(videoId, bypassCache: true, searchHint: hint);
       if (entry != null) {
         cdnResponse = await fetchFromCdn(entry.streamUri);
       }
@@ -180,7 +346,7 @@ void main(List<String> args) async {
 
     if (cdnResponse == null || entry == null) {
       return Response.internalServerError(
-        body: jsonEncode({'error': 'Could not connect to media CDN'}),
+        body: jsonEncode({'error': 'Could not connect to media stream'}),
         headers: {'content-type': 'application/json'},
       );
     }
@@ -220,5 +386,5 @@ void main(List<String> args) async {
 
   final port = int.tryParse(Platform.environment['PORT'] ?? '8080') ?? 8080;
   final server = await io.serve(handler, InternetAddress.anyIPv4, port);
-  print('🚀 CloudBeatz Dart Stream Extractor running on port ${server.port}');
+  print('🚀 CloudBeatz Multi-Engine Stream Extractor running on port ${server.port}');
 }
