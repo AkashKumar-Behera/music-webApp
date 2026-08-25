@@ -8,8 +8,69 @@ import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
-final yt = YoutubeExplode();
-final httpClient = HttpClient();
+String _loadCookies() {
+  final candidatePaths = [
+    Platform.environment['COOKIES_FILE'],
+    '/home/ubuntu/cookies.txt',
+    'cookies.txt',
+    '../cookies.txt',
+  ];
+
+  for (final path in candidatePaths) {
+    if (path == null) continue;
+    final file = File(path);
+    if (file.existsSync()) {
+      try {
+        final lines = file.readAsLinesSync();
+        final cookieMap = <String, String>{};
+        for (final line in lines) {
+          final trimmed = line.trim();
+          if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
+          final parts = trimmed.split(RegExp(r'\t+'));
+          if (parts.length >= 7) {
+            final domain = parts[0].toLowerCase();
+            if (domain.contains('youtube.com') || domain.contains('google.com')) {
+              final name = parts[5].trim();
+              final val = parts[6].trim();
+              if (name.isNotEmpty && val.isNotEmpty) {
+                cookieMap[name] = val;
+              }
+            }
+          }
+        }
+        if (cookieMap.isNotEmpty) {
+          final cookieStr = cookieMap.entries.map((e) => '${e.key}=${e.value}').join('; ');
+          print('🍪 Loaded ${cookieMap.length} YouTube cookies from $path');
+          return cookieStr;
+        }
+      } catch (e) {
+        print('⚠️ Error parsing cookies from $path: $e');
+      }
+    }
+  }
+  return 'CONSENT=YES+cb';
+}
+
+class CookieYoutubeHttpClient extends YoutubeHttpClient {
+  final String _cookieStr;
+  CookieYoutubeHttpClient(this._cookieStr);
+
+  @override
+  Map<String, String> get headers => {
+        'user-agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'cookie': _cookieStr,
+        'accept':
+            'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+        'accept-language': 'en-US,en;q=0.9',
+      };
+}
+
+final String _cookies = _loadCookies();
+final YoutubeExplode yt = YoutubeExplode(
+  httpClient: CookieYoutubeHttpClient(_cookies),
+);
+final HttpClient rawHttpClient = HttpClient();
 
 class StreamCacheEntry {
   final Uri streamUri;
@@ -71,17 +132,17 @@ Future<StreamCacheEntry?> _resolveViaYoutubeExplode(String videoId) async {
         );
       }
     } catch (e) {
-      // Continue to next client
       continue;
     }
   }
 
-  // Fallback: Default without client specification
+  // Fallback: Default client extraction
   try {
     final manifest = await yt.videos.streamsClient.getManifest(videoId);
     final audioStreams = manifest.audioOnly;
     if (audioStreams.isNotEmpty) {
       final bestAudio = audioStreams.withHighestBitrate();
+      print('[Extractor Success] Resolved stream for $videoId using default client');
       return StreamCacheEntry(
         streamUri: bestAudio.url,
         container: bestAudio.container.name,
@@ -195,11 +256,14 @@ void main(List<String> args) async {
 
     Future<HttpClientResponse?> fetchFromCdn(Uri uri) async {
       try {
-        final req = await httpClient.getUrl(uri);
+        final req = await rawHttpClient.getUrl(uri);
         req.headers.set(
           'User-Agent',
-          'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         );
+        if (_cookies.isNotEmpty && _cookies != 'CONSENT=YES+cb') {
+          req.headers.set('Cookie', _cookies);
+        }
         if (clientRangeHeader != null) {
           req.headers.set('Range', clientRangeHeader);
         }
