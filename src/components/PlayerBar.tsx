@@ -61,7 +61,6 @@ export const PlayerBar: React.FC = () => {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ytPlayerRef = useRef<any>(null);
-  const ytContainerRef = useRef<HTMLDivElement | null>(null);
   const [isYtReady, setIsYtReady] = useState(false);
   const [useYtEngine, setUseYtEngine] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
@@ -80,8 +79,8 @@ export const PlayerBar: React.FC = () => {
 
       try {
         ytPlayerRef.current = new window.YT.Player('hidden-yt-player', {
-          height: '1',
-          width: '1',
+          height: '200',
+          width: '200',
           playerVars: {
             autoplay: 1,
             controls: 0,
@@ -90,13 +89,13 @@ export const PlayerBar: React.FC = () => {
             fs: 0,
             playsinline: 1,
             rel: 0,
+            origin: window.location.origin,
           },
           events: {
-            onReady: () => {
+            onReady: (event: any) => {
               setIsYtReady(true);
-              if (ytPlayerRef.current) {
-                ytPlayerRef.current.setVolume(Math.round((isMuted ? 0 : volume) * 100));
-              }
+              const vol = isMuted ? 0 : Math.round(volume * 100);
+              event.target.setVolume(vol);
             },
             onStateChange: (event: any) => {
               if (event.data === window.YT.PlayerState.PLAYING) {
@@ -115,7 +114,7 @@ export const PlayerBar: React.FC = () => {
               }
             },
             onError: (err: any) => {
-              console.warn('YouTube fallback engine error:', err);
+              console.warn('YouTube engine error:', err);
               setIsLoading(false);
             },
           },
@@ -135,40 +134,40 @@ export const PlayerBar: React.FC = () => {
     }
   }, []);
 
-  // Track progress ticker for YT Engine
+  // Track progress ticker
   useEffect(() => {
-    if (!useYtEngine || !isPlaying) return;
+    if (!isPlaying) return;
 
     const interval = setInterval(() => {
-      if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
+      if (useYtEngine && ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
         const time = ytPlayerRef.current.getCurrentTime();
-        if (!isSeeking && time !== undefined) {
+        if (!isSeeking && typeof time === 'number' && !isNaN(time)) {
           setCurrentTime(time);
         }
         const d = ytPlayerRef.current.getDuration();
-        if (d && d > 0) {
+        if (typeof d === 'number' && d > 0) {
           setDuration(d);
         }
       }
     }, 300);
 
     return () => clearInterval(interval);
-  }, [useYtEngine, isPlaying, isSeeking, setCurrentTime, setDuration]);
+  }, [isPlaying, useYtEngine, isSeeking, setCurrentTime, setDuration]);
 
   // Handle Track change
   useEffect(() => {
     if (!currentTrack) return;
 
-    // Reset states
     setCurrentTime(0);
     setIsLoading(true);
     setUseYtEngine(false);
 
-    // Fallback timer: If HTML5 audio doesn't start playing within 3.5s, switch to YT Engine
+    // Fallback: If direct audio does not start playing within 3.5s, switch to YT Engine
     const fallbackTimer = setTimeout(() => {
       if (audioRef.current && (audioRef.current.paused || audioRef.current.readyState < 2)) {
-        console.info('Switching to YouTube audio fallback engine for instant playback');
+        console.info('Switching to YouTube fallback engine for instant playback');
         setUseYtEngine(true);
+        if (audioRef.current) audioRef.current.pause();
         if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
           ytPlayerRef.current.loadVideoById(currentTrack.id);
           ytPlayerRef.current.playVideo();
@@ -179,7 +178,7 @@ export const PlayerBar: React.FC = () => {
     return () => clearTimeout(fallbackTimer);
   }, [currentTrack]);
 
-  // Audio Play / Pause sync
+  // Play / Pause sync
   useEffect(() => {
     if (!currentTrack) return;
 
@@ -196,7 +195,7 @@ export const PlayerBar: React.FC = () => {
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
           playPromise.catch((error) => {
-            console.warn('Audio playback error / switching to YT engine:', error);
+            console.warn('Audio play error, falling back to YT engine:', error);
             setUseYtEngine(true);
             if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
               ytPlayerRef.current.loadVideoById(currentTrack.id);
@@ -206,7 +205,7 @@ export const PlayerBar: React.FC = () => {
         }
       }
     } else {
-      // Unconditionally pause BOTH engines when isPlaying is false
+      // Unconditionally pause BOTH engines
       if (audioRef.current) {
         audioRef.current.pause();
       }
@@ -328,8 +327,20 @@ export const PlayerBar: React.FC = () => {
 
   return (
     <>
-      {/* Hidden YouTube IFrame API Fallback Bridge */}
-      <div className="fixed -top-[9999px] -left-[9999px] w-1 h-1 opacity-0 pointer-events-none overflow-hidden">
+      {/* Invisible YouTube Player Engine Container */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: '0px',
+          right: '0px',
+          width: '200px',
+          height: '200px',
+          opacity: 0.001,
+          pointerEvents: 'none',
+          zIndex: -9999,
+          overflow: 'hidden',
+        }}
+      >
         <div id="hidden-yt-player" />
       </div>
 
