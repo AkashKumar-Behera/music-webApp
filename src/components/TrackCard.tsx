@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Track } from '@/lib/types';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { Play, Pause, Plus, Music2 } from 'lucide-react';
@@ -13,6 +13,7 @@ interface TrackCardProps {
 
 export const TrackCard: React.FC<TrackCardProps> = ({ track, allTracks, viewMode = 'grid' }) => {
   const { currentTrack, isPlaying, playTrack, togglePlay, addToQueue } = usePlayerStore();
+  const [imgError, setImgError] = useState(false);
 
   const isCurrent = currentTrack?.id === track.id;
 
@@ -30,6 +31,11 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, allTracks, viewMode
     addToQueue(track);
   };
 
+  const thumbnailSrc =
+    !imgError && track.thumbnail
+      ? track.thumbnail
+      : `https://i.ytimg.com/vi/${track.id}/hqdefault.jpg`;
+
   if (viewMode === 'list') {
     return (
       <div
@@ -39,12 +45,17 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, allTracks, viewMode
         }`}
       >
         <div className="flex items-center gap-3.5 min-w-0 flex-1">
-          <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800">
-            {track.thumbnail ? (
+          <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/5">
+            {!imgError ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover" />
+              <img
+                src={thumbnailSrc}
+                alt={track.title}
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover"
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-400">
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-950 to-zinc-900 text-emerald-400">
                 <Music2 className="w-5 h-5" />
               </div>
             )}
@@ -95,50 +106,51 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, allTracks, viewMode
   return (
     <div
       onClick={handlePlayClick}
-      className={`group relative p-3.5 rounded-2xl glass-card cursor-pointer flex flex-col justify-between ${
+      className={`group relative p-2.5 sm:p-3.5 rounded-2xl glass-card cursor-pointer flex flex-col justify-between ${
         isCurrent ? 'ring-2 ring-emerald-500/50 bg-emerald-500/5' : ''
       }`}
     >
-      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-zinc-800 mb-3 shadow-md">
-        {track.thumbnail ? (
+      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-zinc-800 mb-2 sm:mb-3 shadow-md border border-white/5">
+        {!imgError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={track.thumbnail}
+            src={thumbnailSrc}
             alt={track.title}
+            onError={() => setImgError(true)}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-400">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-950 to-zinc-900 text-emerald-400">
             <Music2 className="w-8 h-8" />
           </div>
         )}
 
         {/* Play / Pause button overlay */}
         <div
-          className={`absolute bottom-3 right-3 w-11 h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center shadow-xl transition-all duration-300 transform ${
+          className={`absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center shadow-xl transition-all duration-300 transform ${
             isCurrent
               ? 'opacity-100 translate-y-0'
               : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'
           }`}
         >
           {isCurrent && isPlaying ? (
-            <Pause className="w-5 h-5 fill-current" />
+            <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
           ) : (
-            <Play className="w-5 h-5 fill-current ml-0.5" />
+            <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
           )}
         </div>
       </div>
 
       <div>
         <h4
-          className={`text-sm font-semibold truncate ${
+          className={`text-xs sm:text-sm font-semibold truncate ${
             isCurrent ? 'text-emerald-400' : 'text-zinc-100 group-hover:text-white'
           }`}
         >
           {track.title}
         </h4>
-        <div className="flex items-center justify-between mt-1">
-          <p className="text-xs text-zinc-400 truncate flex-1">{track.artist}</p>
+        <div className="flex items-center justify-between mt-0.5 sm:mt-1">
+          <p className="text-[11px] sm:text-xs text-zinc-400 truncate flex-1">{track.artist}</p>
           <button
             onClick={handleAddToQueue}
             title="Add to queue"

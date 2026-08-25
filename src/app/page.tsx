@@ -148,10 +148,10 @@ export default function HomePage() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-[calc(100vh-88px)] overflow-y-auto">
         {/* Top Header Bar with Live Autocomplete SearchBar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 glass border-b border-white/5 gap-4">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 glass border-b border-white/5 gap-2 sm:gap-4">
           <SearchBar onSearch={handleSearch} isLoading={isLoading} />
 
-          <div className="flex items-center gap-2 bg-zinc-900/80 p-1 rounded-xl border border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 bg-zinc-900/80 p-1 rounded-xl border border-white/10 flex-shrink-0">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded-lg transition-colors ${
@@ -174,7 +174,7 @@ export default function HomePage() {
         </header>
 
         {/* Hero & Content Container */}
-        <div className="p-6 md:p-8 space-y-10 max-w-7xl mx-auto w-full pb-36">
+        <div className="p-3.5 sm:p-6 md:p-8 space-y-6 sm:space-y-10 max-w-7xl mx-auto w-full pb-32 sm:pb-36">
           {/* Hero Banner */}
           {!searchQuery && (
             <div className="relative rounded-3xl overflow-hidden p-8 md:p-10 bg-gradient-to-r from-emerald-950/60 via-zinc-900 to-zinc-950 border border-emerald-500/20 shadow-2xl">
