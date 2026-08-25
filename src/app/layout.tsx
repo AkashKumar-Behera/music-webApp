@@ -8,6 +8,11 @@ import { FullScreenPlayer } from '@/components/FullScreenPlayer';
 export const metadata: Metadata = {
   title: 'CloudBeatz Web - Free High Quality Music Streamer',
   description: 'Stream unlimited music with synchronized lyrics, zero ads, and smart recommendations powered by YouTube Music.',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({

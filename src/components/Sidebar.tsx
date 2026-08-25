@@ -23,7 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       <div className="flex items-center gap-3 px-2 mb-8">
         <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-emerald-500/20 border border-white/10 flex-shrink-0 bg-zinc-900">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.png" alt="CloudBeatz Logo" className="w-full h-full object-cover" />
+          <img src="/logo.png" alt="CloudBeatz Logo" className="w-full h-full object-cover" />
         </div>
         <div>
           <h1 className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-zinc-200 to-emerald-400 bg-clip-text text-transparent">
