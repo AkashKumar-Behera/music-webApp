@@ -50,7 +50,8 @@ export const FullScreenPlayer: React.FC = () => {
   } = usePlayerStore();
 
   const [isLiked, setIsLiked] = useState(false);
-  const [isSeeking, setIsSeeking] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragTime, setDragTime] = useState(0);
 
   if (!isFullScreenPlayerOpen || !currentTrack) return null;
 
@@ -61,18 +62,22 @@ export const FullScreenPlayer: React.FC = () => {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseFloat(e.target.value);
-    setCurrentTime(newTime);
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDragTime(parseFloat(e.target.value));
+  };
+
+  const handleSeekCommit = () => {
+    setIsDragging(false);
+    setCurrentTime(dragTime);
     const audioElement = document.querySelector('audio');
     if (audioElement) {
-      audioElement.currentTime = newTime;
+      audioElement.currentTime = dragTime;
     }
     if (typeof window !== 'undefined') {
       try {
         const yt = (window as any).YT?.get?.('hidden-yt-player');
         if (yt && typeof yt.seekTo === 'function') {
-          yt.seekTo(newTime, true);
+          yt.seekTo(dragTime, true);
         }
       } catch (e) {}
     }
@@ -81,7 +86,8 @@ export const FullScreenPlayer: React.FC = () => {
   const handleDownload = () => {
     if (!currentTrack) return;
     const a = document.createElement('a');
-    a.href = `/api/stream?id=${currentTrack.id}`;
+    a.href = `/api/download?id=${currentTrack.id}&title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(currentTrack.artist)}`;
+    a.target = '_blank';
     a.download = `${currentTrack.artist} - ${currentTrack.title}.mp3`;
     document.body.appendChild(a);
     a.click();
@@ -90,7 +96,8 @@ export const FullScreenPlayer: React.FC = () => {
 
   const currentVolPercent = isMuted ? 0 : Math.round(volume * 100);
   const totalDuration = duration || currentTrack.duration || 1;
-  const seekProgress = Math.min(100, Math.max(0, (currentTime / totalDuration) * 100));
+  const displayTime = isDragging ? dragTime : currentTime;
+  const seekProgress = Math.min(100, Math.max(0, (displayTime / totalDuration) * 100));
 
   return (
     <div className="fixed inset-0 z-50 bg-[#09090b] flex flex-col justify-between p-4 sm:p-6 md:p-10 overflow-y-auto animate-in slide-in-from-bottom duration-300 select-none">
@@ -185,17 +192,25 @@ export const FullScreenPlayer: React.FC = () => {
             type="range"
             min={0}
             max={totalDuration}
-            value={currentTime}
-            onMouseDown={() => setIsSeeking(true)}
-            onMouseUp={() => setIsSeeking(false)}
-            onChange={handleSeek}
+            value={displayTime}
+            onMouseDown={() => {
+              setIsDragging(true);
+              setDragTime(currentTime);
+            }}
+            onTouchStart={() => {
+              setIsDragging(true);
+              setDragTime(currentTime);
+            }}
+            onMouseUp={handleSeekCommit}
+            onTouchEnd={handleSeekCommit}
+            onChange={handleSeekChange}
             style={{
               background: `linear-gradient(to right, #10b981 ${seekProgress}%, rgba(255,255,255,0.15) ${seekProgress}%)`,
             }}
             className="w-full h-1.5 sm:h-2 hover:h-2.5 rounded-lg cursor-pointer transition-all"
           />
           <div className="flex items-center justify-between text-[11px] sm:text-xs font-mono text-zinc-400">
-            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(displayTime)}</span>
             <span>{formatTime(totalDuration)}</span>
           </div>
         </div>

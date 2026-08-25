@@ -60,9 +60,12 @@ export const PlayerBar: React.FC = () => {
   } = usePlayerStore();
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const bgAudioKeeperRef = useRef<HTMLAudioElement | null>(null);
   const ytPlayerRef = useRef<any>(null);
   const [isYtReady, setIsYtReady] = useState(false);
   const [useYtEngine, setUseYtEngine] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragTime, setDragTime] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
 
@@ -208,6 +211,8 @@ export const PlayerBar: React.FC = () => {
     if (!currentTrack) return;
 
     if (isPlaying) {
+      bgAudioKeeperRef.current?.play().catch(() => {});
+
       if (useYtEngine) {
         if (audioRef.current) audioRef.current.pause();
         if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
@@ -230,6 +235,7 @@ export const PlayerBar: React.FC = () => {
         }
       }
     } else {
+      bgAudioKeeperRef.current?.pause();
       // Unconditionally pause BOTH engines
       if (audioRef.current) {
         audioRef.current.pause();
@@ -323,20 +329,25 @@ export const PlayerBar: React.FC = () => {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseFloat(e.target.value);
-    setCurrentTime(newTime);
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDragTime(parseFloat(e.target.value));
+  };
+
+  const handleSeekCommit = () => {
+    setIsDragging(false);
+    setCurrentTime(dragTime);
     if (useYtEngine && ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
-      ytPlayerRef.current.seekTo(newTime, true);
+      ytPlayerRef.current.seekTo(dragTime, true);
     } else if (audioRef.current) {
-      audioRef.current.currentTime = newTime;
+      audioRef.current.currentTime = dragTime;
     }
   };
 
   const handleDownload = () => {
     if (!currentTrack) return;
     const a = document.createElement('a');
-    a.href = `/api/stream?id=${currentTrack.id}`;
+    a.href = `/api/download?id=${currentTrack.id}&title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(currentTrack.artist)}`;
+    a.target = '_blank';
     a.download = `${currentTrack.artist} - ${currentTrack.title}.mp3`;
     document.body.appendChild(a);
     a.click();
@@ -345,7 +356,8 @@ export const PlayerBar: React.FC = () => {
 
   const currentVolPercent = isMuted ? 0 : Math.round(volume * 100);
   const totalDuration = currentTrack ? (duration || currentTrack.duration || 1) : 1;
-  const seekProgress = Math.min(100, Math.max(0, (currentTime / totalDuration) * 100));
+  const displayTime = isDragging ? dragTime : currentTime;
+  const seekProgress = Math.min(100, Math.max(0, (displayTime / totalDuration) * 100));
 
   return (
     <>
@@ -365,6 +377,13 @@ export const PlayerBar: React.FC = () => {
       >
         <div id="hidden-yt-player" />
       </div>
+
+      <audio
+        ref={bgAudioKeeperRef}
+        loop
+        playsInline
+        src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
+      />
 
       <audio
         ref={audioRef}
@@ -569,16 +588,24 @@ export const PlayerBar: React.FC = () => {
 
           {/* Seekbar */}
           <div className="w-full flex items-center gap-2.5 group/range">
-            <span className="text-[11px] font-mono text-zinc-400 w-9 text-right">{formatTime(currentTime)}</span>
+            <span className="text-[11px] font-mono text-zinc-400 w-9 text-right">{formatTime(displayTime)}</span>
             <div className="relative w-full flex items-center">
               <input
                 type="range"
                 min={0}
                 max={totalDuration}
-                value={currentTime}
-                onMouseDown={() => setIsSeeking(true)}
-                onMouseUp={() => setIsSeeking(false)}
-                onChange={handleSeek}
+                value={displayTime}
+                onMouseDown={() => {
+                  setIsDragging(true);
+                  setDragTime(currentTime);
+                }}
+                onTouchStart={() => {
+                  setIsDragging(true);
+                  setDragTime(currentTime);
+                }}
+                onMouseUp={handleSeekCommit}
+                onTouchEnd={handleSeekCommit}
+                onChange={handleSeekChange}
                 style={{
                   background: `linear-gradient(to right, #10b981 ${seekProgress}%, rgba(255,255,255,0.15) ${seekProgress}%)`,
                 }}

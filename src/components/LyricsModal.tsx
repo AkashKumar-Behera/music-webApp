@@ -174,10 +174,18 @@ export const LyricsModal: React.FC = () => {
                     : 'text-zinc-500 hover:text-zinc-300'
                 }`}
                 onClick={() => {
+                  usePlayerStore.getState().setCurrentTime(line.time);
                   const audio = document.querySelector('audio');
                   if (audio) {
                     audio.currentTime = line.time;
-                    usePlayerStore.getState().setCurrentTime(line.time);
+                  }
+                  if (typeof window !== 'undefined') {
+                    try {
+                      const yt = (window as any).YT?.get?.('hidden-yt-player');
+                      if (yt && typeof yt.seekTo === 'function') {
+                        yt.seekTo(line.time, true);
+                      }
+                    } catch (e) {}
                   }
                 }}
               >
