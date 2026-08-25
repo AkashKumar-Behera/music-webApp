@@ -126,10 +126,16 @@ export const PlayerBar: React.FC = () => {
                 }
               } else if (event.data === window.YT.PlayerState.PAUSED) {
                 setIsPlaying(false);
+                setIsLoading(false);
               } else if (event.data === window.YT.PlayerState.BUFFERING) {
                 setIsLoading(true);
               } else if (event.data === window.YT.PlayerState.ENDED) {
                 handleTrackEnded();
+              } else if (event.data === window.YT.PlayerState.CUED || event.data === -1) {
+                setIsLoading(false);
+                if (usePlayerStore.getState().isPlaying && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+                  ytPlayerRef.current.playVideo();
+                }
               }
             },
             onError: (err: any) => {
@@ -445,9 +451,7 @@ export const PlayerBar: React.FC = () => {
               onClick={togglePlay}
               className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg active:scale-95 transition-all"
             >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-black" />
-              ) : isPlaying ? (
+              {isPlaying ? (
                 <Pause className="w-5 h-5 fill-current" />
               ) : (
                 <Play className="w-5 h-5 fill-current ml-0.5" />
@@ -537,9 +541,7 @@ export const PlayerBar: React.FC = () => {
               title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
               className="w-10 h-10 rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all flex items-center justify-center shadow-lg shadow-white/10"
             >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-black" />
-              ) : isPlaying ? (
+              {isPlaying ? (
                 <Pause className="w-5 h-5 fill-current" />
               ) : (
                 <Play className="w-5 h-5 fill-current ml-0.5" />

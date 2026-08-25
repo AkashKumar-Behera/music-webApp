@@ -228,9 +228,7 @@ export const FullScreenPlayer: React.FC = () => {
               title={isPlaying ? 'Pause' : 'Play'}
               className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center shadow-xl shadow-emerald-500/30 hover:scale-105 active:scale-95 transition-all"
             >
-              {isLoading ? (
-                <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 animate-spin text-black" />
-              ) : isPlaying ? (
+              {isPlaying ? (
                 <Pause className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
               ) : (
                 <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-current ml-0.5" />
