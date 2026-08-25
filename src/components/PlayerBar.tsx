@@ -247,8 +247,7 @@ export const PlayerBar: React.FC = () => {
   const handleDownload = () => {
     if (!currentTrack) return;
     const a = document.createElement('a');
-    a.href = `/api/download?id=${currentTrack.id}&title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(currentTrack.artist)}`;
-    a.target = '_blank';
+    a.href = `/api/stream?id=${currentTrack.id}&download=1&title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(currentTrack.artist)}`;
     a.download = `${currentTrack.artist} - ${currentTrack.title}.mp3`;
     document.body.appendChild(a);
     a.click();
