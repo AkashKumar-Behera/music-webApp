@@ -362,73 +362,106 @@ void main(List<String> args) async {
 
     final clientRangeHeader = request.headers['range'];
 
-    Future<HttpClientResponse?> fetchFromCdn(Uri uri) async {
-      try {
-        final req = await rawHttpClient.getUrl(uri);
-        req.headers.set(
-          'User-Agent',
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        );
-        if (_cookies.isNotEmpty && _cookies != 'CONSENT=YES+cb') {
-          req.headers.set('Cookie', _cookies);
-        }
-        if (clientRangeHeader != null) {
-          req.headers.set('Range', clientRangeHeader);
-        }
-        return await req.close();
-      } catch (e) {
-        print('[CDN Fetch Error] $e');
-        return null;
+    try {
+      final curlArgs = [
+        '--proxy',
+        'socks5://127.0.0.1:40000',
+        '-s',
+        '-L',
+        '-i', // include HTTP response headers from CDN
+        if (clientRangeHeader != null) ...['-H', 'Range: $clientRangeHeader'],
+        entry.streamUri.toString(),
+      ];
+
+      final process = await Process.start('curl', curlArgs);
+
+      // Parse headers from curl stdout stream
+      final headerBytes = <int>[];
+      final bodyController = StreamController<List<int>>();
+      var headersParsed = false;
+      var statusCode = 200;
+      final cdnHeaders = <String, String>{};
+
+      final sub = process.stdout.listen(
+        (chunk) {
+          if (!headersParsed) {
+            headerBytes.addAll(chunk);
+            final str = latin1.decode(headerBytes);
+            final headerEnd = str.indexOf('\r\n\r\n');
+            if (headerEnd != -1) {
+              headersParsed = true;
+              final headerStr = str.substring(0, headerEnd);
+              final lines = headerStr.split('\r\n');
+              if (lines.isNotEmpty) {
+                final statusLine = lines.first;
+                final parts = statusLine.split(' ');
+                if (parts.length >= 2) {
+                  statusCode = int.tryParse(parts[1]) ?? 200;
+                }
+                for (final line in lines.skip(1)) {
+                  final colon = line.indexOf(':');
+                  if (colon != -1) {
+                    final key = line.substring(0, colon).trim().toLowerCase();
+                    final val = line.substring(colon + 1).trim();
+                    cdnHeaders[key] = val;
+                  }
+                }
+              }
+              final bodyStart = latin1.encode(str.substring(headerEnd + 4));
+              if (bodyStart.isNotEmpty) {
+                bodyController.add(bodyStart);
+              }
+            }
+          } else {
+            bodyController.add(chunk);
+          }
+        },
+        onError: (e) {
+          if (!bodyController.isClosed) bodyController.addError(e);
+        },
+        onDone: () {
+          if (!bodyController.isClosed) bodyController.close();
+        },
+        cancelOnError: true,
+      );
+
+      // Wait briefly for initial headers to resolve
+      var waited = 0;
+      while (!headersParsed && waited < 50) {
+        await Future.delayed(const Duration(milliseconds: 50));
+        waited++;
       }
-    }
 
-    var cdnResponse = await fetchFromCdn(entry.streamUri);
+      final responseHeaders = <String, String>{
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Range',
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'public, max-age=7200',
+        'Content-Type': cdnHeaders['content-type'] ??
+            (entry.container.toLowerCase() == 'webm'
+                ? 'audio/webm'
+                : (entry.container.toLowerCase() == 'mp3' ? 'audio/mpeg' : 'audio/mp4')),
+      };
 
-    // If stream URL is expired (403/410), refresh stream cache
-    if (cdnResponse == null || cdnResponse.statusCode == 403 || cdnResponse.statusCode == 410) {
-      print('[Stream Refresh] Stream failed (${cdnResponse?.statusCode}) for $videoId, re-resolving...');
-      _streamCache.remove(videoId);
-      entry = await _resolveAudioStream(videoId, searchHint: searchHint, bypassCache: true);
-      if (entry != null) {
-        cdnResponse = await fetchFromCdn(entry.streamUri);
+      if (cdnHeaders.containsKey('content-range')) {
+        responseHeaders['Content-Range'] = cdnHeaders['content-range']!;
       }
-    }
+      if (cdnHeaders.containsKey('content-length')) {
+        responseHeaders['Content-Length'] = cdnHeaders['content-length']!;
+      }
 
-    if (cdnResponse == null || entry == null) {
+      return Response(
+        statusCode == 0 ? 200 : statusCode,
+        body: bodyController.stream,
+        headers: responseHeaders,
+      );
+    } catch (e) {
+      print('[Stream Error] $e');
       return Response.internalServerError(
-        body: jsonEncode({'error': 'Could not connect to media stream'}),
+        body: jsonEncode({'error': e.toString()}),
         headers: {'content-type': 'application/json'},
       );
     }
-
-    final responseHeaders = <String, String>{
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Range',
-      'Accept-Ranges': 'bytes',
-      'Cache-Control': 'public, max-age=7200',
-    };
-
-    final contentType = cdnResponse.headers.value('content-type') ??
-        (entry.container.toLowerCase() == 'webm'
-            ? 'audio/webm'
-            : (entry.container.toLowerCase() == 'mp3' ? 'audio/mpeg' : 'audio/mp4'));
-    responseHeaders['Content-Type'] = contentType;
-
-    final contentRange = cdnResponse.headers.value('content-range');
-    if (contentRange != null) {
-      responseHeaders['Content-Range'] = contentRange;
-    }
-
-    final contentLength = cdnResponse.headers.value('content-length');
-    if (contentLength != null) {
-      responseHeaders['Content-Length'] = contentLength;
-    }
-
-    return Response(
-      cdnResponse.statusCode,
-      body: cdnResponse,
-      headers: responseHeaders,
-    );
   });
 
   final handler = const Pipeline()
