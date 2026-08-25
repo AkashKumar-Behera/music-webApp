@@ -22,6 +22,13 @@ import {
   Heart,
 } from 'lucide-react';
 
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
 export const PlayerBar: React.FC = () => {
   const {
     currentTrack,
@@ -53,33 +60,168 @@ export const PlayerBar: React.FC = () => {
   } = usePlayerStore();
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ytPlayerRef = useRef<any>(null);
+  const ytContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isYtReady, setIsYtReady] = useState(false);
+  const [useYtEngine, setUseYtEngine] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
 
   // Stream URL
   const streamSrc = currentTrack ? `/api/stream?id=${currentTrack.id}` : '';
 
+  // Initialize YouTube IFrame API once
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const initYT = () => {
+      if (!window.YT || !window.YT.Player) return;
+      if (ytPlayerRef.current) return;
+
+      try {
+        ytPlayerRef.current = new window.YT.Player('hidden-yt-player', {
+          height: '1',
+          width: '1',
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            disablekb: 1,
+            enablejsapi: 1,
+            fs: 0,
+            playsinline: 1,
+            rel: 0,
+          },
+          events: {
+            onReady: () => {
+              setIsYtReady(true);
+              if (ytPlayerRef.current) {
+                ytPlayerRef.current.setVolume(Math.round((isMuted ? 0 : volume) * 100));
+              }
+            },
+            onStateChange: (event: any) => {
+              if (event.data === window.YT.PlayerState.PLAYING) {
+                setIsPlaying(true);
+                setIsLoading(false);
+                if (ytPlayerRef.current) {
+                  const d = ytPlayerRef.current.getDuration();
+                  if (d && d > 0) setDuration(d);
+                }
+              } else if (event.data === window.YT.PlayerState.PAUSED) {
+                setIsPlaying(false);
+              } else if (event.data === window.YT.PlayerState.BUFFERING) {
+                setIsLoading(true);
+              } else if (event.data === window.YT.PlayerState.ENDED) {
+                handleTrackEnded();
+              }
+            },
+            onError: (err: any) => {
+              console.warn('YouTube fallback engine error:', err);
+              setIsLoading(false);
+            },
+          },
+        });
+      } catch (e) {
+        console.warn('Failed to init YT player:', e);
+      }
+    };
+
+    if (window.YT && window.YT.Player) {
+      initYT();
+    } else {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      window.onYouTubeIframeAPIReady = initYT;
+      document.body.appendChild(tag);
+    }
+  }, []);
+
+  // Track progress ticker for YT Engine
+  useEffect(() => {
+    if (!useYtEngine || !isPlaying) return;
+
+    const interval = setInterval(() => {
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
+        const time = ytPlayerRef.current.getCurrentTime();
+        if (!isSeeking && time !== undefined) {
+          setCurrentTime(time);
+        }
+        const d = ytPlayerRef.current.getDuration();
+        if (d && d > 0) {
+          setDuration(d);
+        }
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [useYtEngine, isPlaying, isSeeking, setCurrentTime, setDuration]);
+
+  // Handle Track change
+  useEffect(() => {
+    if (!currentTrack) return;
+
+    // Reset states
+    setCurrentTime(0);
+    setIsLoading(true);
+    setUseYtEngine(false);
+
+    // Fallback timer: If HTML5 audio doesn't start playing within 3.5s, switch to YT Engine
+    const fallbackTimer = setTimeout(() => {
+      if (audioRef.current && (audioRef.current.paused || audioRef.current.readyState < 2)) {
+        console.info('Switching to YouTube audio fallback engine for instant playback');
+        setUseYtEngine(true);
+        if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
+          ytPlayerRef.current.loadVideoById(currentTrack.id);
+          ytPlayerRef.current.playVideo();
+        }
+      }
+    }, 3500);
+
+    return () => clearTimeout(fallbackTimer);
+  }, [currentTrack]);
+
   // Audio Play / Pause sync
   useEffect(() => {
-    if (!audioRef.current || !currentTrack) return;
+    if (!currentTrack) return;
+
+    if (useYtEngine) {
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+        if (isPlaying) {
+          ytPlayerRef.current.playVideo();
+        } else {
+          ytPlayerRef.current.pauseVideo();
+        }
+      }
+      return;
+    }
+
+    if (!audioRef.current) return;
 
     if (isPlaying) {
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch((error) => {
-          console.warn('Audio playback error / autoplay prevented:', error);
-          setIsPlaying(false);
+          console.warn('Audio playback error / switching to YT engine:', error);
+          setUseYtEngine(true);
+          if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
+            ytPlayerRef.current.loadVideoById(currentTrack.id);
+            ytPlayerRef.current.playVideo();
+          }
         });
       }
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying, currentTrack, setIsPlaying]);
+  }, [isPlaying, currentTrack, useYtEngine]);
 
   // Volume & Mute Sync
   useEffect(() => {
-    if (!audioRef.current) return;
-    audioRef.current.volume = isMuted ? 0 : volume;
+    const vol = isMuted ? 0 : volume;
+    if (audioRef.current) {
+      audioRef.current.volume = vol;
+    }
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.setVolume === 'function') {
+      ytPlayerRef.current.setVolume(Math.round(vol * 100));
+    }
   }, [volume, isMuted]);
 
   // MediaSession API for OS controls & Lockscreen
@@ -104,18 +246,25 @@ export const PlayerBar: React.FC = () => {
     navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
     navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
     navigator.mediaSession.setActionHandler('seekto', (details) => {
-      if (details.seekTime !== undefined && audioRef.current) {
-        audioRef.current.currentTime = details.seekTime;
+      if (details.seekTime !== undefined) {
+        if (useYtEngine && ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
+          ytPlayerRef.current.seekTo(details.seekTime, true);
+        } else if (audioRef.current) {
+          audioRef.current.currentTime = details.seekTime;
+        }
         setCurrentTime(details.seekTime);
       }
     });
-  }, [currentTrack, togglePlay, prevTrack, nextTrack, setCurrentTime]);
+  }, [currentTrack, useYtEngine, togglePlay, prevTrack, nextTrack, setCurrentTime]);
 
   // Auto-fetch related songs when queue is empty
   const handleTrackEnded = async () => {
     const state = usePlayerStore.getState();
     if (state.repeatMode === 'one') {
-      if (audioRef.current) {
+      if (useYtEngine && ytPlayerRef.current) {
+        ytPlayerRef.current.seekTo(0, true);
+        ytPlayerRef.current.playVideo();
+      } else if (audioRef.current) {
         audioRef.current.currentTime = 0;
         audioRef.current.play();
       }
@@ -150,7 +299,9 @@ export const PlayerBar: React.FC = () => {
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = parseFloat(e.target.value);
     setCurrentTime(newTime);
-    if (audioRef.current) {
+    if (useYtEngine && ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
+      ytPlayerRef.current.seekTo(newTime, true);
+    } else if (audioRef.current) {
       audioRef.current.currentTime = newTime;
     }
   };
@@ -174,22 +325,38 @@ export const PlayerBar: React.FC = () => {
 
   return (
     <>
+      {/* Hidden YouTube IFrame API Fallback Bridge */}
+      <div className="fixed -top-[9999px] -left-[9999px] w-1 h-1 opacity-0 pointer-events-none overflow-hidden">
+        <div id="hidden-yt-player" />
+      </div>
+
       <audio
         ref={audioRef}
-        src={streamSrc}
+        src={useYtEngine ? undefined : streamSrc}
+        onError={() => {
+          console.info('Direct audio stream error -> Activating YouTube fallback engine');
+          setUseYtEngine(true);
+          if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function' && currentTrack) {
+            ytPlayerRef.current.loadVideoById(currentTrack.id);
+            ytPlayerRef.current.playVideo();
+          }
+        }}
         onTimeUpdate={() => {
-          if (!isSeeking && audioRef.current) {
+          if (!useYtEngine && !isSeeking && audioRef.current) {
             setCurrentTime(audioRef.current.currentTime);
           }
         }}
         onLoadedMetadata={() => {
-          if (audioRef.current) {
+          if (!useYtEngine && audioRef.current) {
             setDuration(audioRef.current.duration);
             setIsLoading(false);
           }
         }}
-        onWaiting={() => setIsLoading(true)}
-        onPlaying={() => setIsLoading(false)}
+        onWaiting={() => !useYtEngine && setIsLoading(true)}
+        onPlaying={() => {
+          setIsLoading(false);
+          setIsPlaying(true);
+        }}
         onEnded={handleTrackEnded}
       />
 

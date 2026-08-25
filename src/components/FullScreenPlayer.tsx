@@ -68,6 +68,14 @@ export const FullScreenPlayer: React.FC = () => {
     if (audioElement) {
       audioElement.currentTime = newTime;
     }
+    if (typeof window !== 'undefined') {
+      try {
+        const yt = (window as any).YT?.get?.('hidden-yt-player');
+        if (yt && typeof yt.seekTo === 'function') {
+          yt.seekTo(newTime, true);
+        }
+      } catch (e) {}
+    }
   };
 
   const handleDownload = () => {
