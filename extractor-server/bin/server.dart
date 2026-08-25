@@ -93,7 +93,39 @@ class StreamCacheEntry {
 
 final Map<String, StreamCacheEntry> _streamCache = {};
 
-// 1. YouTubeExplode Manifest Extraction
+// Tier 1: Fast yt-dlp with Cloudflare WARP proxy
+Future<StreamCacheEntry?> _resolveViaYtDlp(String videoId) async {
+  try {
+    final result = await Process.run('yt-dlp', [
+      '--proxy',
+      'socks5://127.0.0.1:40000',
+      '-f',
+      'ba[ext=m4a]/ba',
+      '-g',
+      'https://www.youtube.com/watch?v=$videoId',
+    ]);
+    if (result.exitCode == 0) {
+      final lines = (result.stdout as String).trim().split('\n');
+      final validUrls = lines.where((l) => l.trim().startsWith('http')).toList();
+      if (validUrls.isNotEmpty) {
+        final streamUrl = validUrls.first.trim();
+        print('[Extractor Success] Resolved stream for $videoId via yt-dlp + WARP proxy');
+        return StreamCacheEntry(
+          streamUri: Uri.parse(streamUrl),
+          container: 'm4a',
+          bitrateKbps: 128,
+          sizeBytes: 0,
+          expiresAt: DateTime.now().add(const Duration(hours: 3)),
+        );
+      }
+    }
+  } catch (e) {
+    print('[Extractor Info] yt-dlp error for $videoId: $e');
+  }
+  return null;
+}
+
+// Tier 2: YouTubeExplode Native Manifest
 Future<StreamCacheEntry?> _resolveViaYoutubeExplode(String videoId) async {
   final clientSets = [
     [YoutubeApiClient.ios],
@@ -159,7 +191,7 @@ Future<StreamCacheEntry?> _resolveViaYoutubeExplode(String videoId) async {
   return null;
 }
 
-// 2. JioSaavn Search Fallback
+// Tier 3: JioSaavn Search Fallback
 Future<StreamCacheEntry?> _resolveViaJioSaavn(String query) async {
   if (query.trim().isEmpty || query.trim() == 'Track') return null;
 
@@ -217,51 +249,6 @@ Future<StreamCacheEntry?> _resolveViaJioSaavn(String query) async {
   return null;
 }
 
-// 3. Cobalt Audio Resolver Fallback
-Future<StreamCacheEntry?> _resolveViaCobalt(String videoId) async {
-  final cobaltInstances = [
-    'https://co.wuk.sh',
-    'https://api.cobalt.tools',
-  ];
-
-  for (final host in cobaltInstances) {
-    try {
-      final res = await http
-          .post(
-            Uri.parse('$host/'),
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({
-              'url': 'https://www.youtube.com/watch?v=$videoId',
-              'downloadMode': 'audio',
-              'audioFormat': 'mp3',
-            }),
-          )
-          .timeout(const Duration(seconds: 4));
-
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        final streamUrl = data['url']?.toString();
-        if (streamUrl != null && streamUrl.isNotEmpty) {
-          print('[Extractor Fallback] Resolved via Cobalt ($host) for $videoId');
-          return StreamCacheEntry(
-            streamUri: Uri.parse(streamUrl),
-            container: 'mp3',
-            bitrateKbps: 320,
-            sizeBytes: 0,
-            expiresAt: DateTime.now().add(const Duration(hours: 2)),
-          );
-        }
-      }
-    } catch (_) {
-      continue;
-    }
-  }
-  return null;
-}
-
 // Master Audio Resolver across Engines
 Future<StreamCacheEntry?> _resolveAudioStream(
   String videoId, {
@@ -276,17 +263,15 @@ Future<StreamCacheEntry?> _resolveAudioStream(
     _streamCache.remove(videoId);
   }
 
-  // Tier 1: YouTubeExplode Native Manifest
-  var entry = await _resolveViaYoutubeExplode(videoId);
+  // 1. Tier 1: yt-dlp via WARP SOCKS5 (Bypasses Datacenter Bot detection)
+  var entry = await _resolveViaYtDlp(videoId);
 
-  // Tier 2: JioSaavn Search by Title / Artist
+  // 2. Tier 2: YouTubeExplode Native Manifest
+  entry ??= await _resolveViaYoutubeExplode(videoId);
+
+  // 3. Tier 3: JioSaavn Search by Title / Artist
   if (entry == null && searchHint.isNotEmpty) {
     entry = await _resolveViaJioSaavn(searchHint);
-  }
-
-  // Tier 3: Cobalt Resolver
-  if (entry == null) {
-    entry = await _resolveViaCobalt(videoId);
   }
 
   if (entry != null) {
