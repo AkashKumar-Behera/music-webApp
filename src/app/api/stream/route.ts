@@ -16,8 +16,13 @@ async function getDirectAudioUrl(videoId: string): Promise<string | null> {
   }
 
   try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const cookiePath = path.join(process.cwd(), 'cookies.txt');
+    const cookieArg = fs.existsSync(cookiePath) ? `--cookies "${cookiePath}"` : '';
+
     const { stdout } = await execPromise(
-      `yt-dlp -g -f "bestaudio[ext=m4a]/bestaudio/best" "https://www.youtube.com/watch?v=${videoId}"`
+      `yt-dlp ${cookieArg} -g -f "bestaudio[ext=m4a]/bestaudio/best" "https://www.youtube.com/watch?v=${videoId}"`
     );
     const directUrl = stdout.trim().split('\n')[0].trim();
     if (directUrl && directUrl.startsWith('http')) {
