@@ -45,6 +45,9 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const videoId = searchParams.get('id');
+    const isDownload = searchParams.get('download') === '1';
+    const rawTitle = searchParams.get('title') || 'Track';
+    const rawArtist = searchParams.get('artist') || '';
 
     if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
       return NextResponse.json({ error: 'Valid 11-character Video ID is required' }, { status: 400 });
@@ -62,7 +65,7 @@ export async function GET(req: NextRequest) {
         'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
     };
 
-    if (range) {
+    if (range && !isDownload) {
       fetchHeaders['Range'] = range;
     }
 
@@ -88,6 +91,15 @@ export async function GET(req: NextRequest) {
     responseHeaders.set('Accept-Ranges', 'bytes');
     responseHeaders.set('Cache-Control', 'public, max-age=7200');
 
+    if (isDownload) {
+      const cleanFilename = `${rawArtist ? `${rawArtist} - ` : ''}${rawTitle}.mp3`.replace(/[/\\?%*:|"<>]/g, '_');
+      const safeFilename = encodeURIComponent(cleanFilename);
+      responseHeaders.set(
+        'Content-Disposition',
+        `attachment; filename="${cleanFilename.replace(/"/g, '')}"; filename*=UTF-8''${safeFilename}`
+      );
+    }
+
     if (ytResponse.headers.get('content-range')) {
       responseHeaders.set('Content-Range', ytResponse.headers.get('content-range')!);
     }
@@ -96,7 +108,7 @@ export async function GET(req: NextRequest) {
     }
 
     return new Response(ytResponse.body, {
-      status: ytResponse.status,
+      status: isDownload ? 200 : ytResponse.status,
       headers: responseHeaders,
     });
   } catch (error: any) {
