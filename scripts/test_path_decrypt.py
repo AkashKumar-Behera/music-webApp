@@ -4,36 +4,26 @@ import json
 import base64
 from Crypto.Cipher import DES
 
-def test_web_ctx(query):
+def test(query):
     url = f"https://www.jiosaavn.com/api.php?__call=autocomplete.get&query={urllib.parse.quote(query)}&_format=json&_marker=0&ctx=web6dot0"
     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
     with urllib.request.urlopen(req) as resp:
         data = json.loads(resp.read().decode('utf-8'))
         first = data['songs']['data'][0]
         song_id = first['id']
-        print(f"\nSong: {first['title']} ({song_id})")
         
         durl = f"https://www.jiosaavn.com/api.php?__call=song.getDetails&pids={song_id}&_format=json&_marker=0&ctx=web6dot0"
         dreq = urllib.request.Request(durl, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(dreq) as dresp:
             details = json.loads(dresp.read().decode('utf-8'))
             obj = details.get(song_id) or (details.get('songs') and details['songs'][0]) or details
-            enc_media_url = obj.get('encrypted_media_url')
-            print("Encrypted media URL:", enc_media_url)
+            enc = obj.get('encrypted_media_url')
             
-            if enc_media_url:
-                key = b"38343638"
-                cipher = DES.new(key, DES.MODE_ECB)
-                dec = cipher.decrypt(base64.b64decode(enc_media_url))
-                pad = dec[-1]
-                dec_url = dec[:-pad].decode('utf-8')
-                print("🎉 DECRYPTED MEDIA URL:", dec_url)
-                
-                # Test stream
-                sreq = urllib.request.Request(dec_url, headers={'User-Agent': 'Mozilla/5.0'})
-                with urllib.request.urlopen(sreq) as sresp:
-                    print("Status:", sresp.getcode(), "Length:", sresp.headers.get('Content-Length'))
+            key = b"38343638"
+            cipher = DES.new(key, DES.MODE_ECB)
+            dec = cipher.decrypt(base64.b64decode(enc))
+            print("\nDecrypted Raw String:", repr(dec.decode('utf-8', errors='ignore')))
 
-test_web_ctx("Despacito")
-test_web_ctx("Kesariya")
-test_web_ctx("Believer")
+test("Despacito")
+test("Kesariya")
+test("Believer")
