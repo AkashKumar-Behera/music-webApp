@@ -71,7 +71,10 @@ final String _cookies = _loadCookies();
 final YoutubeExplode yt = YoutubeExplode(
   httpClient: CookieYoutubeHttpClient(_cookies),
 );
-final HttpClient rawHttpClient = HttpClient();
+final HttpClient rawHttpClient = HttpClient()
+  ..findProxy = (uri) {
+    return 'SOCKS5 127.0.0.1:40000; DIRECT';
+  };
 
 class StreamCacheEntry {
   final Uri streamUri;
