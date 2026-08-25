@@ -1,0 +1,60 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Next.js build output
+/.next/
+/out/
+/build
+
+# Sensitive Keys, Credentials & Certificates
+*.key
+*.key.pub
+*.pem
+*.ppk
+*.pub
+id_rsa
+id_rsa.pub
+ssh-key-*
+credentials*.json
+
+# Environment variables
+.env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Project Internal Context & System files
+CONTEXT.md
+.agents
+.gemini
+
+# Logs & Debugging
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Temporary test & scratch scripts
+test_*.mjs
+test_*.js
+/scratch
+
+# OS & Editor metadata
+.DS_Store
+*.pem
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript cache
+*.tsbuildinfo
+next-env.d.ts
