@@ -1,27 +1,35 @@
-import urllib.request
-import json
+import base64
 import urllib.parse
+import json
+import urllib.request
 
-def inspect(query):
-    url = f"https://www.jiosaavn.com/api.php?__call=autocomplete.get&query={urllib.parse.quote(query)}&_format=json&_marker=0&ctx=android"
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req) as resp:
-        data = json.loads(resp.read().decode('utf-8'))
-        first = data['songs']['data'][0]
-        print("Autocomplete song item keys:", first.keys())
-        print("More info:", first.get('more_info', {}))
-        
-        # Details call by pids
-        durl = f"https://www.jiosaavn.com/api.php?__call=song.getDetails&pids={first['id']}&_format=json&_marker=0&ctx=android"
-        dreq = urllib.request.Request(durl, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(dreq) as dresp:
-            details = json.loads(dresp.read().decode('utf-8'))
-            print("Details keys:", details.keys())
-            for k, v in details.items():
-                print(f"Key {k} keys:", v.keys() if isinstance(v, dict) else v)
-                if isinstance(v, dict) and 'encrypted_media_url' in v:
-                    print("Found encrypted_media_url directly in root:", v['encrypted_media_url'])
-                if isinstance(v, dict) and 'media_preview_url' in v:
-                    print("Found media_preview_url:", v['media_preview_url'])
+# Pure Python DES ECB Decryption for JioSaavn encrypted_media_url (key: b"38343638")
+# Since standard DES is simple 8-byte block ECB, let's write or import
+try:
+    from Crypto.Cipher import DES
+    def decrypt_url(enc_b64):
+        key = b'38343638'
+        cipher = DES.new(key, DES.MODE_ECB)
+        enc = base64.b64decode(enc_b64)
+        dec = cipher.decrypt(enc)
+        pad = dec[-1]
+        return dec[:-pad].decode('utf-8')
+except ImportError:
+    # Use pycryptodome or openssl cli
+    import subprocess
+    def decrypt_url(enc_b64):
+        res = subprocess.run([
+            'openssl', 'enc', '-d', '-des-ecb', '-K', '3338333433363338', '-nosalt', '-base64', '-A'
+        ], input=enc_b64.encode('utf-8'), capture_output=True)
+        return res.stdout.decode('utf-8', errors='ignore').strip()
 
-inspect("Despacito")
+def test_des():
+    enc = "ID2ieOjCrwfgWvL5sXl4B1ImC5QfbsDyZYSrL0BEigYelaWUYAWpj8YH2SR1uHt05TpItSbPKs+XqumRo6iOBBw7tS9a8Gtq"
+    dec = decrypt_url(enc)
+    print("DECRYPTED MEDIA URL:", dec)
+    url_320 = dec.replace("_96.mp4", "_320.mp4").replace("_160.mp4", "_320.mp4")
+    if not "_320.mp4" in url_320 and not "_160.mp4" in url_320:
+        url_320 = url_320.replace(".mp4", "_320.mp4")
+    print("320KBPS STREAM URL:", url_320)
+
+test_des()
