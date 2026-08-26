@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '@/components/Sidebar';
 import { SearchBar } from '@/components/SearchBar';
 import { TrackCard } from '@/components/TrackCard';
@@ -302,19 +303,24 @@ export default function HomePage() {
           )}
         </header>
 
-        {/* ========================================================================= */}
-        {/* 📚 PLAYLIST DETAIL / HUB VIEW (History, Favorites, Offline, etc.)          */}
-        {/* ========================================================================= */}
-        {openedPlaylist ? (
-          <div className="p-4 sm:p-8 space-y-6 animate-in fade-in duration-200 pb-20">
-            {/* Back Button */}
-            <button
-              onClick={() => setOpenedPlaylist(null)}
-              className="flex items-center gap-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
+        <AnimatePresence mode="wait">
+          {openedPlaylist ? (
+            <motion.div
+              key={`playlist-${openedPlaylist.id}`}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.2 }}
+              className="p-4 sm:p-8 space-y-6 pb-20"
             >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Back to Library</span>
-            </button>
+              {/* Back Button */}
+              <button
+                onClick={() => setOpenedPlaylist(null)}
+                className="flex items-center gap-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Back to Library</span>
+              </button>
 
             {/* Gradient Banner (Screenshot 2 & 3 Exact Replica) */}
             <div className="w-full rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-purple-700 via-rose-600 to-amber-600 shadow-2xl flex flex-col items-center justify-center text-center space-y-4">
@@ -695,6 +701,7 @@ export default function HomePage() {
             {activeTab === 'settings' && <SettingsView />}
           </>
         )}
+        </AnimatePresence>
 
         {/* Floating Search FAB Button on Mobile (Screenshots 2 & 4) */}
         <button

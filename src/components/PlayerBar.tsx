@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { useThemeStore } from '@/lib/themeStore';
 import { OfflineStore } from '@/lib/offlineStore';
+import { getHighResThumbnail } from '@/lib/types';
 import {
   Play,
   Pause,
@@ -307,7 +309,12 @@ export const PlayerBar: React.FC = () => {
           {/* ========================================================================= */}
           {/* 📱 MOBILE MINI-PLAYER (Swipe Up to expand, with top progress line)         */}
           {/* ========================================================================= */}
-          <div
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onClick={() => setIsFullScreenPlayerOpen(true)}
@@ -324,14 +331,17 @@ export const PlayerBar: React.FC = () => {
             <div className="flex items-center justify-between gap-3 pt-1">
               {/* Left: Thumbnail & Info */}
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0 shadow-md border border-white/10">
+                <motion.div
+                  layoutId={`album-art-${currentTrack.id}`}
+                  className="relative w-11 h-11 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0 shadow-md border border-white/10"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={currentTrack.thumbnail || '/placeholder.png'}
+                    src={getHighResThumbnail(currentTrack.thumbnail, currentTrack.id)}
                     alt={currentTrack.title}
                     className="w-full h-full object-cover"
                   />
-                </div>
+                </motion.div>
 
                 <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-semibold text-white truncate">{currentTrack.title}</h4>
@@ -341,9 +351,10 @@ export const PlayerBar: React.FC = () => {
 
               {/* Right: Quick Mobile Controls */}
               <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.88 }}
                   onClick={togglePlay}
-                  className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg active:scale-95 transition-all"
+                  className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg transition-all"
                 >
                   {isLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin text-black" />
@@ -352,17 +363,18 @@ export const PlayerBar: React.FC = () => {
                   ) : (
                     <Play className="w-5 h-5 fill-current ml-0.5" />
                   )}
-                </button>
+                </motion.button>
 
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.88 }}
                   onClick={nextTrack}
-                  className="p-2 text-zinc-300 hover:text-white active:scale-95 transition-all"
+                  className="p-2 text-zinc-300 hover:text-white transition-all"
                 >
                   <SkipForward className="w-5 h-5 fill-current" />
-                </button>
+                </motion.button>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* ========================================================================= */}
           {/* 💻 DESKTOP PLAYER BAR                                                    */}
