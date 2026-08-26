@@ -254,6 +254,8 @@ export default function HomePage() {
   const activeAppBg =
     themeMode === 'dark'
       ? '#09090b'
+      : themeMode === 'light'
+      ? '#261622'
       : themeMode === 'dynamic'
       ? backgroundColor || '#160913'
       : '#09090b';
