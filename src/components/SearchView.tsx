@@ -290,10 +290,10 @@ export const SearchView: React.FC<SearchViewProps> = ({
                   <button
                     key={tab}
                     onClick={() => setActiveSubTab(tab)}
-                    className={`[writing-mode:vertical-rl] rotate-180 text-[9px] sm:text-[10px] font-bold tracking-wider uppercase whitespace-nowrap transition-all py-0.5 ${
+                    className={`[writing-mode:vertical-rl] rotate-180 text-[11px] sm:text-xs tracking-wide whitespace-nowrap transition-all py-0.5 ${
                       isActive
-                        ? 'text-white border-r-2 border-white font-black pr-0.5'
-                        : 'text-zinc-500 hover:text-zinc-300'
+                        ? 'text-white border-r-2 border-white font-bold pr-0.5'
+                        : 'text-zinc-500 hover:text-zinc-300 font-medium'
                     }`}
                   >
                     {tab}
@@ -555,10 +555,10 @@ export const SearchView: React.FC<SearchViewProps> = ({
                         setViewAllCategory(tab);
                       }
                     }}
-                    className={`[writing-mode:vertical-rl] rotate-180 text-[9px] sm:text-[10px] font-bold tracking-wider uppercase whitespace-nowrap transition-all py-0.5 ${
+                    className={`[writing-mode:vertical-rl] rotate-180 text-[11px] sm:text-xs tracking-wide whitespace-nowrap transition-all py-0.5 ${
                       isActive
-                        ? 'text-white border-r-2 border-white font-black pr-0.5'
-                        : 'text-zinc-500 hover:text-zinc-300'
+                        ? 'text-white border-r-2 border-white font-bold pr-0.5'
+                        : 'text-zinc-500 hover:text-zinc-300 font-medium'
                     }`}
                   >
                     {tab}
