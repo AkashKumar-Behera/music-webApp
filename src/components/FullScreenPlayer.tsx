@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { useThemeStore } from '@/lib/themeStore';
-import { getHighResThumbnail } from '@/lib/types';
+import { getHighResThumbnail, parseDuration } from '@/lib/types';
 import {
   Play,
   Pause,
@@ -101,7 +101,9 @@ export const FullScreenPlayer: React.FC = () => {
     }
   };
 
-  const totalDuration = currentTrack ? (currentTrack.duration || duration || 1) : 1;
+  const totalDuration = currentTrack
+    ? (parseDuration(currentTrack.duration, currentTrack.durationFormatted).seconds || duration || 1)
+    : 1;
   const displayTime = isDragging ? dragTime : currentTime;
   const seekProgress = Math.min(100, Math.max(0, (displayTime / totalDuration) * 100));
 

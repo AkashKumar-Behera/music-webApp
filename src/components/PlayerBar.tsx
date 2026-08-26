@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { useThemeStore } from '@/lib/themeStore';
 import { OfflineStore } from '@/lib/offlineStore';
-import { getHighResThumbnail } from '@/lib/types';
+import { getHighResThumbnail, parseDuration } from '@/lib/types';
 import {
   Play,
   Pause,
@@ -301,7 +301,9 @@ export const PlayerBar: React.FC = () => {
   };
 
   const currentVolPercent = isMuted ? 0 : Math.round(volume * 100);
-  const totalDuration = currentTrack ? (currentTrack.duration || duration || 1) : 1;
+  const totalDuration = currentTrack
+    ? (parseDuration(currentTrack.duration, currentTrack.durationFormatted).seconds || duration || 1)
+    : 1;
   const displayTime = isDragging ? dragTime : currentTime;
   const seekProgress = Math.min(100, Math.max(0, (displayTime / totalDuration) * 100));
 
@@ -319,7 +321,7 @@ export const PlayerBar: React.FC = () => {
         onDurationChange={() => {
           if (audioRef.current) {
             const rawDur = audioRef.current.duration;
-            const trackDur = currentTrack?.duration || 0;
+            const trackDur = parseDuration(currentTrack?.duration, currentTrack?.durationFormatted).seconds;
             if (trackDur > 0) {
               setDuration(trackDur);
             } else if (rawDur && isFinite(rawDur) && rawDur > 0) {
@@ -331,10 +333,10 @@ export const PlayerBar: React.FC = () => {
           if (!isDragging && audioRef.current) {
             let rawCurrent = audioRef.current.currentTime || 0;
             const rawDur = audioRef.current.duration || 0;
-            const trackDur = currentTrack?.duration || (duration > 0 ? duration : 0);
+            const trackDur = parseDuration(currentTrack?.duration, currentTrack?.durationFormatted).seconds || (duration > 0 ? duration : 0);
 
-            // Fix iOS WebKit 2x duration & 2x currentTime bug:
-            // When iOS Safari decodes 48kHz Opus streams as 24kHz, WebKit doubles the duration & current time.
+            // Fix iOS WebKit & Chrome 2x duration & 2x currentTime bug:
+            // When browser decodes 48kHz Opus streams with 24kHz header, it doubles duration & current time.
             if (trackDur > 0 && rawDur > trackDur * 1.6 && rawDur < trackDur * 2.4) {
               if (rawCurrent > trackDur) {
                 rawCurrent = rawCurrent / 2;
@@ -351,7 +353,7 @@ export const PlayerBar: React.FC = () => {
         onLoadedMetadata={() => {
           if (audioRef.current) {
             const rawDur = audioRef.current.duration;
-            const trackDur = currentTrack?.duration || 0;
+            const trackDur = parseDuration(currentTrack?.duration, currentTrack?.durationFormatted).seconds;
             if (trackDur > 0) {
               setDuration(trackDur);
             } else if (rawDur && isFinite(rawDur) && rawDur > 0) {

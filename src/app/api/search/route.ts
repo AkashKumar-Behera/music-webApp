@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInnertube } from '@/lib/youtube';
-import { Track, getHighResThumbnail } from '@/lib/types';
+import { Track, getHighResThumbnail, parseDuration } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,13 +30,14 @@ export async function GET(req: NextRequest) {
       if (songRes && songRes.songs && songRes.songs.contents) {
         for (const item of songRes.songs.contents) {
           if (item && item.id && item.title) {
+            const parsedDur = parseDuration(item.duration, item.duration?.text);
             songs.push({
               id: item.id,
               title: item.title?.toString() || 'Title',
               artist: item.artists?.[0]?.name?.toString() || item.author?.name?.toString() || 'Artist',
               album: item.album?.name?.toString(),
-              duration: typeof item.duration?.seconds === 'number' ? item.duration.seconds : 0,
-              durationFormatted: item.duration?.text || '3:30',
+              duration: parsedDur.seconds,
+              durationFormatted: parsedDur.formatted,
               thumbnail: getHighResThumbnail(item.thumbnails, item.id),
             });
           }
@@ -77,12 +78,13 @@ export async function GET(req: NextRequest) {
       if (videoRes && videoRes.videos && videoRes.videos.contents) {
         for (const vid of videoRes.videos.contents) {
           if (vid && vid.id && vid.title) {
+            const parsedDur = parseDuration(vid.duration, vid.duration?.text);
             videos.push({
               id: vid.id,
               title: vid.title?.toString() || 'Video',
               artist: vid.artists?.[0]?.name?.toString() || vid.author?.name?.toString() || 'Video',
-              duration: typeof vid.duration?.seconds === 'number' ? vid.duration.seconds : 0,
-              durationFormatted: vid.duration?.text || '3:30',
+              duration: parsedDur.seconds,
+              durationFormatted: parsedDur.formatted,
               thumbnail: getHighResThumbnail(vid.thumbnails, vid.id),
             });
           }
@@ -109,12 +111,13 @@ export async function GET(req: NextRequest) {
         const generalSearch = await yt.search(query, { type: 'video' });
         for (const video of (generalSearch.videos || []) as any[]) {
           if (video && video.id && video.title) {
+            const parsedDur = parseDuration(video.duration, video.duration?.text);
             songs.push({
               id: video.id,
               title: video.title.toString(),
               artist: video.author?.name?.toString() || 'Artist',
-              duration: video.duration?.seconds || 0,
-              durationFormatted: video.duration?.text || '3:30',
+              duration: parsedDur.seconds,
+              durationFormatted: parsedDur.formatted,
               thumbnail: getHighResThumbnail(video.thumbnails, video.id),
             });
           }
@@ -136,16 +139,20 @@ export async function GET(req: NextRequest) {
     const key = type === 'song' ? 'songs' : type === 'album' ? 'albums' : type === 'artist' ? 'artists' : type === 'video' ? 'videos' : 'playlists';
     const items = (searchRes as any)?.[key]?.contents || [];
 
-    const formatted = items.map((item: any) => ({
-      id: item.id,
-      title: item.title?.toString() || item.name?.toString() || 'Item',
-      name: item.name?.toString() || item.title?.toString() || 'Item',
-      artist: item.artists?.[0]?.name?.toString() || item.author?.name?.toString() || '',
-      durationFormatted: item.duration?.text || '3:30',
-      year: item.year?.toString() || '2024',
-      subscribers: item.subscribers?.toString() || '',
-      thumbnail: getHighResThumbnail(item.thumbnails, item.id),
-    }));
+    const formatted = items.map((item: any) => {
+      const parsedDur = parseDuration(item.duration, item.duration?.text);
+      return {
+        id: item.id,
+        title: item.title?.toString() || item.name?.toString() || 'Item',
+        name: item.name?.toString() || item.title?.toString() || 'Item',
+        artist: item.artists?.[0]?.name?.toString() || item.author?.name?.toString() || '',
+        duration: parsedDur.seconds,
+        durationFormatted: parsedDur.formatted,
+        year: item.year?.toString() || '2024',
+        subscribers: item.subscribers?.toString() || '',
+        thumbnail: getHighResThumbnail(item.thumbnails, item.id),
+      };
+    });
 
     return NextResponse.json({ items, tracks: formatted });
   } catch (error: any) {

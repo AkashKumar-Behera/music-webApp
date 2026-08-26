@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Track } from '@/lib/types';
+import { Track, parseDuration } from '@/lib/types';
 import { useThemeStore } from '@/lib/themeStore';
 
 interface PlayerState {
@@ -66,33 +66,41 @@ export const usePlayerStore = create<PlayerState>()(
       playTrack: (track, newQueue) => {
         const state = get();
         
+        // Ensure duration is accurately parsed from durationFormatted if duration was 0
+        const parsedDur = parseDuration(track.duration, track.durationFormatted);
+        const normalizedTrack: Track = {
+          ...track,
+          duration: parsedDur.seconds,
+          durationFormatted: parsedDur.formatted,
+        };
+
         // Sync dynamic theme palette
-        if (track.thumbnail) {
-          useThemeStore.getState().extractColorsFromImage(track.thumbnail);
+        if (normalizedTrack.thumbnail) {
+          useThemeStore.getState().extractColorsFromImage(normalizedTrack.thumbnail);
         }
 
         // Add to history if unique
-        const updatedHistory = [track, ...state.history.filter((t) => t.id !== track.id)].slice(0, 100);
+        const updatedHistory = [normalizedTrack, ...state.history.filter((t) => t.id !== normalizedTrack.id)].slice(0, 100);
 
         if (newQueue) {
-          const filteredQueue = newQueue.filter((t) => t.id !== track.id);
+          const filteredQueue = newQueue.filter((t) => t.id !== normalizedTrack.id);
           set({
-            currentTrack: track,
+            currentTrack: normalizedTrack,
             queue: filteredQueue,
             history: updatedHistory,
             isPlaying: true,
             isLoading: true,
             currentTime: 0,
-            duration: track.duration || 0,
+            duration: normalizedTrack.duration,
           });
         } else {
           set({
-            currentTrack: track,
+            currentTrack: normalizedTrack,
             history: updatedHistory,
             isPlaying: true,
             isLoading: true,
             currentTime: 0,
-            duration: track.duration || 0,
+            duration: normalizedTrack.duration,
           });
         }
       },
