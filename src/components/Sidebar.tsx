@@ -1,7 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Home, Compass, Radio, Heart, ListMusic, Sparkles } from 'lucide-react';
+import {
+  Home,
+  Music2,
+  ListMusic,
+  Disc3,
+  Mic2,
+  Settings,
+  Sparkles,
+} from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -9,12 +17,13 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
-  const navItems = [
-    { id: 'home', label: 'Home / Explore', icon: Home },
-    { id: 'trending', label: 'Trending Hits', icon: Compass },
-    { id: 'radio', label: 'Radio & Vibes', icon: Radio },
-    { id: 'favorites', label: 'Liked Songs', icon: Heart },
-    { id: 'library', label: 'My Library', icon: ListMusic },
+  const mainNavItems = [
+    { id: 'home', label: 'Home', icon: Home },
+    { id: 'songs', label: 'Songs', icon: Music2 },
+    { id: 'playlists', label: 'Playlists', icon: ListMusic },
+    { id: 'albums', label: 'Albums', icon: Disc3 },
+    { id: 'artists', label: 'Artists', icon: Mic2 },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (
@@ -35,8 +44,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
       {/* Main Nav Items */}
       <div className="space-y-1.5">
-        <p className="px-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Discover</p>
-        {navItems.map((item) => {
+        <p className="px-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Library & Discover</p>
+        {mainNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
@@ -59,9 +68,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       {/* Footer Info */}
       <div className="mt-auto pt-4 border-t border-white/5 px-2">
         <div className="p-3 rounded-xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/5">
-          <p className="text-xs font-semibold text-zinc-200 mb-1">0-Server Streaming</p>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200 mb-1">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <span>BOLI Smart Engine</span>
+          </div>
           <p className="text-[11px] text-zinc-400 leading-relaxed">
-            Vercel Serverless Ready with synchronized lyrics & YT Music engine.
+            Auto-customizes home dashboard based on your last played song.
           </p>
         </div>
       </div>
