@@ -371,6 +371,49 @@ void main(List<String> args) async {
     );
   });
 
+  // Fast Full-Speed Track Download Endpoint
+  app.get('/download', (Request request) async {
+    final videoId = request.url.queryParameters['id'];
+    final title = request.url.queryParameters['title'] ?? 'Track';
+    final artist = request.url.queryParameters['artist'] ?? '';
+
+    if (videoId == null || videoId.length != 11) {
+      return Response.badRequest(
+        body: jsonEncode({'error': 'Valid 11-character video ID is required'}),
+        headers: {'content-type': 'application/json'},
+      );
+    }
+
+    final cleanFilename = '${artist.isNotEmpty ? '$artist - ' : ''}$title.m4a'.replaceAll(RegExp(r'[/\\?%*:|"<>"]'), '_');
+
+    try {
+      final process = await Process.start('yt-dlp', [
+        '--proxy',
+        'socks5://127.0.0.1:40000',
+        '-f',
+        '140/ba[ext=m4a]/ba',
+        '-o',
+        '-',
+        'https://www.youtube.com/watch?v=$videoId',
+      ]);
+
+      return Response.ok(
+        process.stdout,
+        headers: {
+          'Content-Type': 'audio/mp4',
+          'Content-Disposition': 'attachment; filename="$cleanFilename"',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store',
+        },
+      );
+    } catch (e) {
+      return Response.internalServerError(
+        body: jsonEncode({'error': e.toString()}),
+        headers: {'content-type': 'application/json'},
+      );
+    }
+  });
+
   final handler = const Pipeline()
       .addMiddleware(corsHeaders())
       .addMiddleware(logRequests())

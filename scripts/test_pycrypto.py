@@ -4,11 +4,11 @@ import json
 
 def test():
     try:
-        from Crypto.Cipher import DES
+        from Crypto.Cipher import DES  # type: ignore
     except ImportError:
         import os
         os.system("pip3 install pycryptodome --quiet")
-        from Crypto.Cipher import DES
+        from Crypto.Cipher import DES  # type: ignore
 
     key = b"38343638"
     enc_url = "ID2ieOjCrwfgWvL5sXl4B1ImC5QfbsDyZYSrL0BEigYelaWUYAWpj8YH2SR1uHt05TpItSbPKs+XqumRo6iOBBw7tS9a8Gtq"

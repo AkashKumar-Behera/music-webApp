@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { usePlayerStore } from '@/store/usePlayerStore';
-import { downloadTrack } from '@/utils/downloadTrack';
 import {
   Play,
   Pause,
@@ -17,7 +16,6 @@ import {
   ListMusic,
   Maximize2,
   Heart,
-  Download,
   Loader2,
   Mic2,
 } from 'lucide-react';
@@ -243,13 +241,6 @@ export const PlayerBar: React.FC = () => {
     if (audioRef.current) {
       audioRef.current.currentTime = dragTime;
     }
-  };
-
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  const handleDownload = async () => {
-    if (!currentTrack || isDownloading) return;
-    await downloadTrack(currentTrack, setIsDownloading);
   };
 
   const currentVolPercent = isMuted ? 0 : Math.round(volume * 100);
@@ -532,23 +523,6 @@ export const PlayerBar: React.FC = () => {
                 }`}
               >
                 <ListMusic className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={handleDownload}
-                disabled={isDownloading}
-                title={isDownloading ? 'Downloading...' : 'Download MP3/M4A'}
-                className={`p-2 rounded-xl transition-colors ${
-                  isDownloading
-                    ? 'text-emerald-400 bg-emerald-500/10 cursor-wait'
-                    : 'text-zinc-400 hover:text-emerald-400 hover:bg-white/5'
-                }`}
-              >
-                {isDownloading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
               </button>
 
               {/* Volume slider */}

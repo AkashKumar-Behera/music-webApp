@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { usePlayerStore } from '@/store/usePlayerStore';
-import { downloadTrack } from '@/utils/downloadTrack';
 import {
   Play,
   Pause,
@@ -16,8 +15,6 @@ import {
   Volume1,
   ListMusic,
   Mic2,
-  Download,
-  Loader2,
   Music,
   ChevronDown,
   Heart,
@@ -34,18 +31,18 @@ export const FullScreenPlayer: React.FC = () => {
     isMuted,
     repeatMode,
     isShuffled,
-    isFullScreenPlayerOpen,
     isLyricsOpen,
     isQueueOpen,
-    toggleFullScreenPlayer,
+    isFullScreenPlayerOpen,
     togglePlay,
-    setCurrentTime,
     nextTrack,
     prevTrack,
-    setVolume,
-    toggleMute,
     toggleRepeat,
     toggleShuffle,
+    setVolume,
+    toggleMute,
+    setCurrentTime,
+    toggleFullScreenPlayer,
     toggleLyrics,
     toggleQueue,
   } = usePlayerStore();
@@ -76,13 +73,6 @@ export const FullScreenPlayer: React.FC = () => {
     }
   };
 
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  const handleDownload = async () => {
-    if (!currentTrack || isDownloading) return;
-    await downloadTrack(currentTrack, setIsDownloading);
-  };
-
   const currentVolPercent = isMuted ? 0 : Math.round(volume * 100);
   const totalDuration = duration || currentTrack.duration || 1;
   const displayTime = isDragging ? dragTime : currentTime;
@@ -90,257 +80,224 @@ export const FullScreenPlayer: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-[#09090b] flex flex-col justify-between p-4 sm:p-6 md:p-10 overflow-y-auto animate-in slide-in-from-bottom duration-300 select-none">
-      {/* Dynamic Background Blur */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={currentTrack.thumbnail}
-          alt={currentTrack.title}
-          className="w-full h-full object-cover scale-150 blur-3xl opacity-25 filter brightness-50"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent" />
+      {/* Dynamic Ambient Background Glow */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[140px]" />
+        <div className="absolute -bottom-40 right-10 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[140px]" />
       </div>
 
-      {/* Top Header */}
-      <div className="relative z-10 flex items-center justify-between max-w-4xl mx-auto w-full pt-1">
+      {/* Top Bar (Collapse Button & Title) */}
+      <div className="flex items-center justify-between w-full max-w-4xl mx-auto">
         <button
           onClick={toggleFullScreenPlayer}
-          title="Minimize (Esc)"
-          className="p-2.5 sm:p-3 rounded-2xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-all hover:scale-105 active:scale-95 border border-white/10"
+          className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+          title="Minimize"
         >
-          <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6" />
+          <ChevronDown className="w-6 h-6" />
         </button>
 
-        <div className="text-center px-4">
-          <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Now Playing</p>
-          <p className="text-xs sm:text-sm font-semibold text-white truncate max-w-[180px] sm:max-w-xs md:max-w-md">
-            {currentTrack.album || 'CloudBeatz High-Fidelity'}
+        <div className="text-center">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Now Playing</p>
+          <p className="text-xs text-zinc-300 font-medium truncate max-w-[200px] sm:max-w-md">
+            {currentTrack.album || currentTrack.title}
           </p>
         </div>
 
         <button
           onClick={() => setIsLiked(!isLiked)}
-          className={`p-2.5 sm:p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-all hover:scale-105 active:scale-95 border border-white/10 ${
-            isLiked ? 'text-rose-500 fill-rose-500' : 'text-zinc-300 hover:text-white'
+          className={`p-2.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors ${
+            isLiked ? 'text-emerald-400' : 'text-zinc-400 hover:text-white'
           }`}
         >
-          <Heart className={`w-5 h-5 sm:w-6 sm:h-6 ${isLiked ? 'fill-current' : ''}`} />
+          <Heart className={`w-5 h-5 ${isLiked ? 'fill-emerald-400 text-emerald-400' : ''}`} />
         </button>
       </div>
 
-      {/* Center Stage: Artwork & Song Info */}
-      <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center justify-center gap-6 sm:gap-8 md:gap-14 max-w-4xl mx-auto w-full my-4 sm:my-6">
-        {/* Album Artwork */}
-        <div className="relative aspect-square w-52 sm:w-64 md:w-80 lg:w-96 rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/15 group flex-shrink-0">
-          {currentTrack.thumbnail ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={currentTrack.thumbnail}
-              alt={currentTrack.title}
-              className={`w-full h-full object-cover transition-transform duration-700 ${
-                isPlaying ? 'scale-105' : 'scale-100'
-              }`}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-600">
-              <Music className="w-20 h-20" />
-            </div>
-          )}
-
-          <div className="absolute inset-0 ring-1 ring-inset ring-white/20 rounded-3xl pointer-events-none" />
+      {/* Center Section: Big Album Artwork & Track Info */}
+      <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-14 my-auto w-full max-w-4xl mx-auto py-6">
+        {/* Artwork */}
+        <div className="relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-3xl overflow-hidden shadow-2xl shadow-emerald-950/40 border border-white/10 flex-shrink-0 group">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={currentTrack.thumbnail || '/placeholder.png'}
+            alt={currentTrack.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 pointer-events-none" />
         </div>
 
-        {/* Info & Metadata */}
-        <div className="flex flex-col justify-center text-center md:text-left max-w-md space-y-2 sm:space-y-3 px-2">
-          <div className="space-y-1">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight line-clamp-2">
-              {currentTrack.title}
-            </h1>
-            <p className="text-sm sm:text-base md:text-lg font-medium text-emerald-400 truncate">{currentTrack.artist}</p>
-          </div>
+        {/* Metadata & Lyrics Link */}
+        <div className="flex flex-col items-center lg:items-start text-center lg:text-left max-w-md w-full">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight line-clamp-2 leading-tight mb-2">
+            {currentTrack.title}
+          </h2>
+          <p className="text-base sm:text-lg text-zinc-400 font-medium mb-3 truncate w-full">
+            {currentTrack.artist}
+          </p>
+
           {currentTrack.album && (
-            <p className="text-[11px] sm:text-xs text-zinc-400 tracking-wide uppercase font-semibold">{currentTrack.album}</p>
+            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-6">
+              {currentTrack.album}
+            </p>
           )}
 
-          <div className="pt-1 flex items-center justify-center md:justify-start gap-2 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          {/* Badges */}
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold tracking-wide flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Lossless Stream
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-white/5 text-zinc-400 border border-white/10">
+            <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-[11px] font-semibold tracking-wide">
               Lyrics Available
             </span>
           </div>
         </div>
       </div>
 
-      {/* Bottom Controls & Seekbar */}
-      <div className="relative z-10 max-w-3xl mx-auto w-full space-y-4 sm:space-y-6 pb-2">
-        {/* Seekbar */}
-        <div className="space-y-1.5 group/range">
-          <input
-            type="range"
-            min={0}
-            max={totalDuration}
-            value={displayTime}
-            onMouseDown={() => {
-              setIsDragging(true);
-              setDragTime(currentTime);
-            }}
-            onTouchStart={() => {
-              setIsDragging(true);
-              setDragTime(currentTime);
-            }}
-            onMouseUp={handleSeekCommit}
-            onTouchEnd={handleSeekCommit}
-            onChange={handleSeekChange}
-            style={{
-              background: `linear-gradient(to right, #10b981 ${seekProgress}%, rgba(255,255,255,0.15) ${seekProgress}%)`,
-            }}
-            className="w-full h-1.5 sm:h-2 hover:h-2.5 rounded-lg cursor-pointer transition-all"
-          />
-          <div className="flex items-center justify-between text-[11px] sm:text-xs font-mono text-zinc-400">
+      {/* Bottom Section: Progress Bar, Controls & Drawer Buttons */}
+      <div className="w-full max-w-3xl mx-auto space-y-5">
+        {/* Progress Bar & Timestamps */}
+        <div className="space-y-1.5">
+          <div className="relative group/timeline w-full flex items-center py-2 cursor-pointer">
+            <input
+              type="range"
+              min={0}
+              max={totalDuration}
+              step={0.1}
+              value={displayTime}
+              onChange={handleSeekChange}
+              onMouseDown={() => setIsDragging(true)}
+              onMouseUp={handleSeekCommit}
+              onTouchStart={() => setIsDragging(true)}
+              onTouchEnd={handleSeekCommit}
+              className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
+            />
+            {/* Track Background */}
+            <div className="relative w-full h-1.5 bg-white/10 rounded-full overflow-hidden group-hover/timeline:h-2 transition-all">
+              {/* Active Fill */}
+              <div
+                className="absolute left-0 top-0 bottom-0 bg-emerald-400 rounded-full"
+                style={{ width: `${seekProgress}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center text-xs font-semibold text-zinc-400 px-0.5">
             <span>{formatTime(displayTime)}</span>
             <span>{formatTime(totalDuration)}</span>
           </div>
         </div>
 
-        {/* Playback Controls & Action Row */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={toggleShuffle}
-              title="Shuffle"
-              className={`p-2.5 sm:p-3 rounded-2xl transition-all ${
-                isShuffled
-                  ? 'text-emerald-400 bg-emerald-500/15 border border-emerald-500/30'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Shuffle className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+        {/* Playback Controls */}
+        <div className="flex items-center justify-between">
+          {/* Shuffle */}
+          <button
+            onClick={toggleShuffle}
+            title={isShuffled ? 'Shuffle: On' : 'Shuffle: Off'}
+            className={`p-2.5 rounded-full transition-colors ${
+              isShuffled ? 'text-emerald-400 bg-emerald-500/10' : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Shuffle className="w-5 h-5" />
+          </button>
 
+          {/* Main 3 Controls (Prev, Play/Pause, Next) */}
+          <div className="flex items-center gap-4 sm:gap-6">
             <button
               onClick={prevTrack}
               title="Previous"
-              className="p-2 sm:p-3 text-zinc-300 hover:text-white hover:scale-110 active:scale-95 transition-all"
+              className="p-3 text-zinc-300 hover:text-white transition-colors hover:scale-110 active:scale-95"
             >
-              <SkipBack className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
+              <SkipBack className="w-7 h-7 fill-current" />
             </button>
 
             <button
               onClick={togglePlay}
+              disabled={isLoading}
               title={isPlaying ? 'Pause' : 'Play'}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center shadow-xl shadow-emerald-500/30 hover:scale-105 active:scale-95 transition-all"
+              className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center shadow-xl shadow-emerald-500/25 hover:scale-105 active:scale-95 transition-all"
             >
-              {isPlaying ? (
-                <Pause className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
+              {isLoading ? (
+                <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="w-8 h-8 fill-black" />
               ) : (
-                <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-current ml-0.5" />
+                <Play className="w-8 h-8 fill-black translate-x-0.5" />
               )}
             </button>
 
             <button
               onClick={nextTrack}
               title="Next"
-              className="p-2 sm:p-3 text-zinc-300 hover:text-white hover:scale-110 active:scale-95 transition-all"
+              className="p-3 text-zinc-300 hover:text-white transition-colors hover:scale-110 active:scale-95"
             >
-              <SkipForward className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
-            </button>
-
-            <button
-              onClick={toggleRepeat}
-              title={`Repeat: ${repeatMode}`}
-              className={`p-2.5 sm:p-3 rounded-2xl transition-all ${
-                repeatMode !== 'off'
-                  ? 'text-emerald-400 bg-emerald-500/15 border border-emerald-500/30'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {repeatMode === 'one' ? (
-                <Repeat1 className="w-4 h-4 sm:w-5 sm:h-5" />
-              ) : (
-                <Repeat className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
+              <SkipForward className="w-7 h-7 fill-current" />
             </button>
           </div>
 
-          {/* Quick Actions Row (Lyrics, Queue, Download, Volume) */}
-          <div className="flex items-center justify-center sm:justify-between gap-3 pt-1 border-t border-white/5">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleLyrics}
-                className={`p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
-                  isLyricsOpen
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <Mic2 className="w-4 h-4" />
-                <span>Lyrics</span>
-              </button>
+          {/* Repeat */}
+          <button
+            onClick={toggleRepeat}
+            title={`Repeat: ${repeatMode}`}
+            className={`p-2.5 rounded-full transition-colors ${
+              repeatMode !== 'off' ? 'text-emerald-400 bg-emerald-500/10' : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            {repeatMode === 'one' ? <Repeat1 className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}
+          </button>
+        </div>
 
-              <button
-                onClick={toggleQueue}
-                className={`p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
-                  isQueueOpen
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <ListMusic className="w-4 h-4" />
-                <span>Queue</span>
-              </button>
+        {/* Actions & Volume Row */}
+        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleLyrics}
+              className={`p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+                isLyricsOpen
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Mic2 className="w-4 h-4" />
+              <span>Lyrics</span>
+            </button>
 
-              <button
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className={`p-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${
-                  isDownloading
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-wait'
-                    : 'bg-white/5 text-zinc-300 hover:text-emerald-400 hover:bg-white/10'
-                }`}
-              >
-                {isDownloading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                    <span className="hidden sm:inline">Downloading...</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4" />
-                    <span className="hidden sm:inline">Download</span>
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              onClick={toggleQueue}
+              className={`p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+                isQueueOpen
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <ListMusic className="w-4 h-4" />
+              <span>Queue</span>
+            </button>
+          </div>
 
-            {/* Volume slider (Desktop) */}
-            <div className="hidden sm:flex items-center gap-2 group/range pl-2 py-1 px-2.5 rounded-xl bg-white/[0.04] border border-white/5">
-              <button onClick={toggleMute} className="text-zinc-400 hover:text-white transition-colors">
-                {isMuted || volume === 0 ? (
-                  <VolumeX className="w-4 h-4" />
-                ) : volume < 0.5 ? (
-                  <Volume1 className="w-4 h-4" />
-                ) : (
-                  <Volume2 className="w-4 h-4" />
-                )}
-              </button>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={isMuted ? 0 : volume}
-                onChange={(e) => setVolume(parseFloat(e.target.value))}
-                style={{
-                  background: `linear-gradient(to right, #10b981 ${currentVolPercent}%, rgba(255,255,255,0.15) ${currentVolPercent}%)`,
-                }}
-                className="w-16 h-1.5 hover:h-2 rounded-lg cursor-pointer"
-              />
-              <span className="text-[11px] font-mono font-medium text-zinc-400 w-8 text-right select-none">
-                {currentVolPercent}%
-              </span>
-            </div>
+          {/* Volume slider (Desktop) */}
+          <div className="hidden sm:flex items-center gap-2 group/range pl-2 py-1 px-2.5 rounded-xl bg-white/[0.04] border border-white/5">
+            <button onClick={toggleMute} className="text-zinc-400 hover:text-white transition-colors">
+              {isMuted || volume === 0 ? (
+                <VolumeX className="w-4 h-4" />
+              ) : volume < 0.5 ? (
+                <Volume1 className="w-4 h-4" />
+              ) : (
+                <Volume2 className="w-4 h-4 text-emerald-400" />
+              )}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={isMuted ? 0 : volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="w-20 h-1 accent-emerald-400 bg-white/20 rounded-lg cursor-pointer opacity-70 group-hover/range:opacity-100 transition-opacity"
+            />
+            <span className="text-[10px] font-semibold text-zinc-400 w-6 text-right tabular-nums">
+              {currentVolPercent}%
+            </span>
           </div>
         </div>
       </div>

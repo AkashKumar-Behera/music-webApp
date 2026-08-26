@@ -6,7 +6,7 @@ import urllib.request
 # Pure Python DES ECB Decryption for JioSaavn encrypted_media_url (key: b"38343638")
 # Since standard DES is simple 8-byte block ECB, let's write or import
 try:
-    from Crypto.Cipher import DES
+    from Crypto.Cipher import DES  # type: ignore
     def decrypt_url(enc_b64):
         key = b'38343638'
         cipher = DES.new(key, DES.MODE_ECB)

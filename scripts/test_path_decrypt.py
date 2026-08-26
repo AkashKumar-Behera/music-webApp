@@ -2,7 +2,7 @@ import urllib.request
 import urllib.parse
 import json
 import base64
-from Crypto.Cipher import DES
+from Crypto.Cipher import DES  # type: ignore
 
 def test(query):
     url = f"https://www.jiosaavn.com/api.php?__call=autocomplete.get&query={urllib.parse.quote(query)}&_format=json&_marker=0&ctx=web6dot0"
