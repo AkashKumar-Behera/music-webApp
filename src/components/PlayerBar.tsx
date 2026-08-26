@@ -538,7 +538,7 @@ export const PlayerBar: React.FC = () => {
             </div>
 
             {/* Right: Volume & Drawer Toggles */}
-            <div className="flex items-center gap-3.5 z-10 justify-end">
+            <div className="flex items-center gap-3.5 relative z-30 justify-end">
               <button
                 onClick={toggleLyrics}
                 className={`p-2 rounded-xl transition-all ${
@@ -560,12 +560,15 @@ export const PlayerBar: React.FC = () => {
               </button>
 
               {/* Volume Slider & Percentage (Interactive, Real-time 0-100%) */}
-              <div className="flex items-center gap-2 group/vol">
+              <div className="flex items-center gap-2 group/vol select-none">
                 <button
                   onClick={() => {
+                    const nextMuted = !isMuted;
                     toggleMute();
                     if (audioRef.current) {
-                      audioRef.current.volume = !isMuted ? 0 : volume;
+                      const v = nextMuted ? 0 : volume;
+                      audioRef.current.volume = v;
+                      audioRef.current.muted = nextMuted;
                     }
                   }}
                   className="text-zinc-400 hover:text-white transition-colors p-1"
@@ -579,7 +582,8 @@ export const PlayerBar: React.FC = () => {
                     <Volume2 className="w-4 h-4 text-zinc-200" />
                   )}
                 </button>
-                <div className="flex items-center w-28 sm:w-32 h-6 cursor-pointer">
+
+                <div className="flex items-center w-28 sm:w-32 h-6">
                   <input
                     type="range"
                     min={0}
@@ -603,9 +607,13 @@ export const PlayerBar: React.FC = () => {
                       setVolume(val);
                       if (isMuted && val > 0) toggleMute();
                     }}
-                    className="w-full h-1.5 bg-white/20 accent-white rounded-full cursor-pointer transition-all"
+                    style={{
+                      background: `linear-gradient(to right, #ffffff ${(isMuted ? 0 : volume) * 100}%, rgba(255, 255, 255, 0.2) ${(isMuted ? 0 : volume) * 100}%)`,
+                    }}
+                    className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-white transition-all [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md hover:[&::-webkit-slider-thumb]:scale-125"
                   />
                 </div>
+
                 <span className="text-xs font-mono text-zinc-300 w-9 text-right select-none font-bold">
                   {Math.round((isMuted ? 0 : volume) * 100)}%
                 </span>

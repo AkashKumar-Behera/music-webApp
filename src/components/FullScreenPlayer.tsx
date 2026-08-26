@@ -51,6 +51,9 @@ export const FullScreenPlayer: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
 
+  const touchStartY = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
+
   if (!currentTrack) return null;
 
   const isLiked = isFavorite(currentTrack.id);
@@ -90,9 +93,6 @@ export const FullScreenPlayer: React.FC = () => {
 
   const accentBtnBg =
     themeMode === 'dynamic' && dominantColor ? dominantColor : '#e11d48';
-
-  const touchStartY = useRef<number | null>(null);
-  const touchStartX = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
