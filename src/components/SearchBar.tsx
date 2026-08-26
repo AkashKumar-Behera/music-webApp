@@ -110,14 +110,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, isLoading }) => 
 
   return (
     <div ref={containerRef} className="relative w-full max-w-2xl">
-      <form onSubmit={handleSubmit} className="relative flex items-center">
-        <div className="absolute left-4 pointer-events-none text-zinc-400">
+      <form onSubmit={handleSubmit} className="relative flex items-center w-full">
+        <div className="absolute left-4 z-10 pointer-events-none flex items-center justify-center text-white">
           {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+            <Loader2 className="w-5 h-5 animate-spin text-white" />
           ) : isUrl ? (
             <LinkIcon className="w-5 h-5 text-emerald-400" />
           ) : (
-            <Search className="w-5 h-5 text-zinc-400" />
+            <Search className="w-5 h-5 text-white stroke-[2.2]" />
           )}
         </div>
 
@@ -132,7 +132,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, isLoading }) => 
           }}
           onKeyDown={handleKeyDown}
           placeholder="Songs, Playlist, Album or Artist"
-          className="w-full pl-12 pr-12 py-3 bg-[#34242f]/90 hover:bg-[#34242f] text-white placeholder-zinc-400 text-sm rounded-full border border-white/10 focus:border-white/30 focus:ring-1 focus:ring-white/20 focus:outline-none transition-all shadow-inner"
+          className="w-full pl-12 pr-12 py-3 bg-white/10 hover:bg-white/15 text-white placeholder-white/60 text-sm rounded-full border border-white/10 focus:border-white/30 focus:ring-1 focus:ring-white/20 focus:outline-none transition-all shadow-inner backdrop-blur-md"
         />
 
         {query && (

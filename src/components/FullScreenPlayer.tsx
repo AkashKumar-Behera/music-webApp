@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { useThemeStore } from '@/lib/themeStore';
@@ -91,6 +91,27 @@ export const FullScreenPlayer: React.FC = () => {
   const accentBtnBg =
     themeMode === 'dynamic' && dominantColor ? dominantColor : '#e11d48';
 
+  const touchStartY = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartY.current === null || touchStartX.current === null) return;
+    const diffY = e.changedTouches[0].clientY - touchStartY.current;
+    const diffX = e.changedTouches[0].clientX - touchStartX.current;
+
+    // If swiped down more than 50px
+    if (diffY > 50 && Math.abs(diffY) > Math.abs(diffX)) {
+      setIsFullScreenPlayerOpen(false);
+    }
+    touchStartY.current = null;
+    touchStartX.current = null;
+  };
+
   return (
     <AnimatePresence>
       {isFullScreenPlayerOpen && (
@@ -100,21 +121,25 @@ export const FullScreenPlayer: React.FC = () => {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: '100%', opacity: 0 }}
           transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-          drag="y"
-          dragConstraints={{ top: 0, bottom: 0 }}
-          dragElastic={{ top: 0.05, bottom: 0.6 }}
-          onDragEnd={(_, info) => {
-            if (info.offset.y > 100 || info.velocity.y > 500) {
-              setIsFullScreenPlayerOpen(false);
-            }
-          }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           style={{ backgroundColor: activeBg }}
-          className="fixed inset-0 z-50 flex flex-col justify-between p-4 sm:p-8 md:p-12 overflow-y-auto select-none touch-none"
+          className="fixed inset-0 z-50 flex flex-col justify-between p-4 sm:p-8 md:p-12 overflow-y-auto select-none transition-colors duration-500"
         >
           {/* ========================================================================= */}
-          {/* TOP HEADER: Down Arrow (Minimize) & 3-Dot More Menu                       */}
+          {/* TOP HEADER: Down Arrow (Minimize) & Drag Pill                             */}
           {/* ========================================================================= */}
-          <div className="w-full flex items-center justify-between z-10">
+          <motion.div
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.5 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 50 || info.velocity.y > 300) {
+                setIsFullScreenPlayerOpen(false);
+              }
+            }}
+            className="w-full flex items-center justify-between z-10 py-1 cursor-grab active:cursor-grabbing"
+          >
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setIsFullScreenPlayerOpen(false)}
@@ -125,7 +150,10 @@ export const FullScreenPlayer: React.FC = () => {
             </motion.button>
 
             {/* Mobile Drag Pill */}
-            <div className="md:hidden w-12 h-1.5 bg-white/20 rounded-full cursor-grab" />
+            <div
+              onClick={() => setIsFullScreenPlayerOpen(false)}
+              className="md:hidden w-12 h-1.5 bg-white/30 hover:bg-white/50 rounded-full cursor-pointer"
+            />
 
             <motion.button
               whileTap={{ scale: 0.9 }}
@@ -135,7 +163,7 @@ export const FullScreenPlayer: React.FC = () => {
             >
               <MoreVertical className="w-6 h-6" />
             </motion.button>
-          </div>
+          </motion.div>
 
           {/* ========================================================================= */}
           {/* MAIN PLAYER BODY: Mobile Vertical vs Laptop / Desktop 2-Column Split      */}

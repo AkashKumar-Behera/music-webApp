@@ -28,48 +28,73 @@ export const useThemeStore = create<ThemeState>()(
 
       extractColorsFromImage: (imageUrl) => {
         if (get().themeMode !== 'dynamic') return;
-        if (typeof window === 'undefined') return;
+        if (typeof window === 'undefined' || !imageUrl) return;
 
-        // Fallback default dynamic shades
         const img = new Image();
-        img.crossOrigin = 'Anonymous';
-        img.src = imageUrl;
+        img.crossOrigin = 'anonymous';
+        // Use local image proxy to bypass external CDN CORS restrictions
+        img.src = imageUrl.startsWith('http')
+          ? `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`
+          : imageUrl;
 
         img.onload = () => {
           try {
             const canvas = document.createElement('canvas');
-            canvas.width = 10;
-            canvas.height = 10;
-            const ctx = canvas.getContext('2d');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
             if (!ctx) return;
 
-            ctx.drawImage(img, 0, 0, 10, 10);
-            const data = ctx.getImageData(0, 0, 10, 10).data;
+            ctx.drawImage(img, 0, 0, 32, 32);
+            const data = ctx.getImageData(0, 0, 32, 32).data;
 
-            let r = 0, g = 0, b = 0, count = 0;
+            let maxSat = 0;
+            let domR = 225, domG = 29, domB = 72; // default vibrant rose
+            let totalR = 0, totalG = 0, totalB = 0, count = 0;
+
             for (let i = 0; i < data.length; i += 4) {
-              r += data[i];
-              g += data[i + 1];
-              b += data[i + 2];
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              const a = data[i + 3];
+              if (a < 128) continue;
+
+              totalR += r;
+              totalG += g;
+              totalB += b;
               count++;
+
+              // Calculate saturation & luminance
+              const max = Math.max(r, g, b);
+              const min = Math.min(r, g, b);
+              const sat = max === 0 ? 0 : (max - min) / max;
+              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+              // Pick the most vibrant color in natural visibility range
+              if (sat > maxSat && lum > 35 && lum < 225) {
+                maxSat = sat;
+                domR = r;
+                domG = g;
+                domB = b;
+              }
             }
 
-            r = Math.floor(r / count);
-            g = Math.floor(g / count);
-            b = Math.floor(b / count);
+            const avgR = count > 0 ? Math.floor(totalR / count) : domR;
+            const avgG = count > 0 ? Math.floor(totalG / count) : domG;
+            const avgB = count > 0 ? Math.floor(totalB / count) : domB;
 
-            // Boost saturation and clamp background to deep luxury tones
-            const bgR = Math.max(12, Math.min(28, Math.floor(r * 0.18)));
-            const bgG = Math.max(8, Math.min(20, Math.floor(g * 0.15)));
-            const bgB = Math.max(14, Math.min(26, Math.floor(b * 0.20)));
+            // Deep luxury background tint adapted to the cover's dominant mood
+            const bgR = Math.max(10, Math.min(26, Math.floor(domR * 0.13 + avgR * 0.06)));
+            const bgG = Math.max(8, Math.min(22, Math.floor(domG * 0.13 + avgG * 0.06)));
+            const bgB = Math.max(12, Math.min(28, Math.floor(domB * 0.13 + avgB * 0.06)));
 
-            const dominant = `rgb(${Math.max(180, r)}, ${g}, ${b})`;
-            const accent = `rgb(${r}, ${g}, ${b})`;
+            const dominant = `rgb(${domR}, ${domG}, ${domB})`;
+            const accent = `rgb(${Math.min(255, domR + 35)}, ${Math.min(255, domG + 35)}, ${Math.min(255, domB + 35)})`;
             const bg = `rgb(${bgR}, ${bgG}, ${bgB})`;
 
             set({ dominantColor: dominant, accentColor: accent, backgroundColor: bg });
-          } catch {
-            // Ignore canvas security errors on some external CDNs
+          } catch (err) {
+            console.warn('Dynamic color extraction failed:', err);
           }
         };
       },

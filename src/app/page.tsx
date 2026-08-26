@@ -566,9 +566,26 @@ export default function HomePage() {
           currentTrack ? 'h-[calc(100vh-70px)] md:h-[calc(100vh-88px)]' : 'h-screen'
         } overflow-y-auto relative transition-all duration-300`}
       >
-        {/* Top Header Bar (Desktop Only) */}
-        <header className="sticky top-0 z-30 hidden md:flex items-center justify-center px-4 sm:px-6 py-3.5 bg-black/20 backdrop-blur-xl border-b border-white/5">
-          <div className="flex justify-center w-full max-w-2xl">
+        {/* Top Header Bar (Desktop Only - Compact Discover + SearchBar) */}
+        <header
+          style={{ backgroundColor: activeAppBg }}
+          className="sticky top-0 z-30 hidden md:flex items-center gap-8 px-8 pt-6 pb-2 transition-colors duration-500"
+        >
+          <h2 className="text-2xl font-extrabold text-white tracking-tight flex-shrink-0">
+            {activeTab === 'home'
+              ? 'Discover'
+              : activeTab === 'songs'
+              ? 'Songs'
+              : activeTab === 'playlists'
+              ? 'Playlists'
+              : activeTab === 'albums'
+              ? 'Albums'
+              : activeTab === 'artists'
+              ? 'Artists'
+              : 'Settings'}
+          </h2>
+
+          <div className="w-full max-w-xl">
             <SearchBar onSearch={handleSearch} isLoading={isLoading} />
           </div>
         </header>
@@ -662,13 +679,13 @@ export default function HomePage() {
             {/* 🏠 TAB 1: HOME / DISCOVER (BOLI Dynamic Engine - Screenshots 1, 2, 3, 4)   */}
             {/* ========================================================================= */}
             {activeTab === 'home' && (
-              <div className="p-4 sm:p-8 pt-12 sm:pt-14 space-y-8 animate-in fade-in duration-300 pb-24">
-                <div className="flex items-center justify-between">
+              <div className="p-4 sm:p-6 md:px-8 md:pb-8 md:pt-3 pt-10 space-y-6 animate-in fade-in duration-300 pb-24">
+                <div className="flex md:hidden items-center justify-between">
                   <h2 className="text-2xl font-extrabold text-white tracking-tight">Discover</h2>
                 </div>
 
                 {/* Section 1: 4-Row Horizontal Scrolling Grid (Screenshots 1-4 Exact Replica) */}
-                <div className="grid grid-rows-4 grid-flow-col auto-cols-[260px] sm:auto-cols-[280px] md:auto-cols-[300px] gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x">
+                <div className="grid grid-rows-4 grid-flow-col auto-cols-[260px] sm:auto-cols-[280px] md:auto-cols-[300px] gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x touch-pan-x">
                   {(boliData.quickPicks.length > 0 ? boliData.quickPicks : tracks).map(
                     (track) => (
                       <div
@@ -722,7 +739,7 @@ export default function HomePage() {
                       {boliData.basedOn?.artist ? `${boliData.basedOn.artist} Albums` : 'The Weeknd Albums'}
                     </h3>
 
-                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
+                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x touch-pan-x">
                       {(boliData.artistAlbums.length > 0 ? boliData.artistAlbums : albums).map((alb) => (
                         <div
                           key={alb.id}
@@ -757,7 +774,7 @@ export default function HomePage() {
                       {boliData.basedOn?.artist ? `${boliData.basedOn.artist} Mixes` : 'Community playlists'}
                     </h3>
 
-                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
+                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x touch-pan-x">
                       {(boliData.relatedPlaylists.length > 0 ? boliData.relatedPlaylists : playlists).map((pl) => (
                         <div
                           key={pl.id}

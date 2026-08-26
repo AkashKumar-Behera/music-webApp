@@ -62,26 +62,48 @@ export const PlayerBar: React.FC = () => {
 
   const { dominantColor, backgroundColor, themeMode } = useThemeStore();
 
+  const activePlayerBg =
+    themeMode === 'dark'
+      ? '#09090b'
+      : themeMode === 'light'
+      ? '#261622'
+      : themeMode === 'dynamic'
+      ? backgroundColor || '#160913'
+      : '#160913';
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
   const [activeAudioSrc, setActiveAudioSrc] = useState<string>('');
 
-  // Swipe Up Gestures on Mini Player
+  // Mobile Mini Player Gesture Handlers (Swipe Up -> Fullscreen, Swipe Left/Right -> Next/Prev)
   const touchStartY = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0].clientX;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartY.current === null) return;
-    const diff = touchStartY.current - e.changedTouches[0].clientY;
-    if (diff > 40) {
-      // Swiped Up -> Open Full Screen Player
+    if (touchStartY.current === null || touchStartX.current === null) return;
+    const diffY = touchStartY.current - e.changedTouches[0].clientY;
+    const diffX = e.changedTouches[0].clientX - touchStartX.current;
+
+    if (diffY > 25 && Math.abs(diffY) > Math.abs(diffX)) {
+      // Swiped UP -> Open Full Screen Player
       setIsFullScreenPlayerOpen(true);
+    } else if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX < 0) {
+        // Swiped LEFT -> Next Song
+        nextTrack();
+      } else {
+        // Swiped RIGHT -> Previous Song
+        prevTrack();
+      }
     }
     touchStartY.current = null;
+    touchStartX.current = null;
   };
 
   // Resolve stream: Check Offline IndexedDB first, else stream from backend
@@ -146,7 +168,9 @@ export const PlayerBar: React.FC = () => {
   // Handle Volume & Mute Sync
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
+      const targetVol = isMuted ? 0 : Math.max(0, Math.min(1, volume));
+      audioRef.current.volume = targetVol;
+      audioRef.current.muted = isMuted || targetVol === 0;
     }
   }, [volume, isMuted]);
 
@@ -266,6 +290,7 @@ export const PlayerBar: React.FC = () => {
         src={activeAudioSrc}
         playsInline
         preload="auto"
+        muted={isMuted}
         onTimeUpdate={() => {
           if (!isDragging && audioRef.current) {
             const rawCurrent = audioRef.current.currentTime;
@@ -288,11 +313,17 @@ export const PlayerBar: React.FC = () => {
             } else if (trackDur > 0) {
               setDuration(trackDur);
             }
+            audioRef.current.volume = isMuted ? 0 : Math.max(0, Math.min(1, volume));
+            audioRef.current.muted = isMuted;
             setIsLoading(false);
           }
         }}
         onWaiting={() => setIsLoading(true)}
         onPlaying={() => {
+          if (audioRef.current) {
+            audioRef.current.volume = isMuted ? 0 : Math.max(0, Math.min(1, volume));
+            audioRef.current.muted = isMuted;
+          }
           setIsLoading(false);
           setIsPlaying(true);
         }}
@@ -318,7 +349,8 @@ export const PlayerBar: React.FC = () => {
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onClick={() => setIsFullScreenPlayerOpen(true)}
-            className="fixed bottom-2 left-2 right-2 md:hidden z-40 bg-zinc-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-2.5 flex flex-col shadow-2xl cursor-pointer select-none"
+            className="fixed bottom-2 left-2 right-2 md:hidden z-40 backdrop-blur-2xl border border-white/10 rounded-2xl p-2.5 flex flex-col shadow-2xl cursor-pointer select-none transition-colors duration-500"
+            style={{ backgroundColor: activePlayerBg }}
           >
             {/* Top 2px Progress Line */}
             <div className="absolute top-0 left-3 right-3 h-[2px] bg-white/10 rounded-full overflow-hidden">
@@ -379,9 +411,12 @@ export const PlayerBar: React.FC = () => {
           {/* ========================================================================= */}
           {/* 💻 DESKTOP PLAYER BAR                                                    */}
           {/* ========================================================================= */}
-          <div className="hidden md:flex fixed bottom-0 left-0 right-0 h-24 bg-zinc-950/90 backdrop-blur-2xl border-t border-white/10 z-40 items-center justify-between px-6 select-none shadow-2xl">
+          <div
+            style={{ backgroundColor: activePlayerBg }}
+            className="hidden md:flex fixed bottom-0 left-0 right-0 h-24 backdrop-blur-2xl border-t border-white/10 z-40 items-center justify-between px-6 select-none shadow-2xl transition-colors duration-500"
+          >
             {/* Left: Song Info & Heart */}
-            <div className="flex items-center gap-3.5 w-72 min-w-0">
+            <div className="flex items-center gap-3.5 w-72 min-w-0 z-10">
               <div
                 onClick={() => setIsFullScreenPlayerOpen(true)}
                 className="relative w-14 h-14 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0 cursor-pointer group shadow-md border border-white/10"
@@ -418,8 +453,8 @@ export const PlayerBar: React.FC = () => {
               </button>
             </div>
 
-            {/* Center: Playback Controls & Seekbar */}
-            <div className="flex flex-col items-center gap-1.5 flex-1 max-w-xl px-4">
+            {/* Center: Playback Controls & Seekbar (Dead-Center on Screen) */}
+            <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 w-full max-w-lg lg:max-w-xl px-4 pointer-events-auto">
               <div className="flex items-center gap-4">
                 <button
                   onClick={toggleShuffle}
@@ -503,7 +538,7 @@ export const PlayerBar: React.FC = () => {
             </div>
 
             {/* Right: Volume & Drawer Toggles */}
-            <div className="flex items-center gap-4 w-72 justify-end">
+            <div className="flex items-center gap-3.5 z-10 justify-end">
               <button
                 onClick={toggleLyrics}
                 className={`p-2 rounded-xl transition-all ${
@@ -524,26 +559,56 @@ export const PlayerBar: React.FC = () => {
                 <ListMusic className="w-4 h-4" />
               </button>
 
-              {/* Volume Slider */}
-              <div className="flex items-center gap-2">
-                <button onClick={toggleMute} className="text-zinc-400 hover:text-white transition-colors">
+              {/* Volume Slider & Percentage (Interactive, Real-time 0-100%) */}
+              <div className="flex items-center gap-2 group/vol">
+                <button
+                  onClick={() => {
+                    toggleMute();
+                    if (audioRef.current) {
+                      audioRef.current.volume = !isMuted ? 0 : volume;
+                    }
+                  }}
+                  className="text-zinc-400 hover:text-white transition-colors p-1"
+                  title={isMuted ? 'Unmute' : 'Mute'}
+                >
                   {isMuted || volume === 0 ? (
-                    <VolumeX className="w-4 h-4" />
+                    <VolumeX className="w-4 h-4 text-rose-400" />
                   ) : volume < 0.5 ? (
-                    <Volume1 className="w-4 h-4" />
+                    <Volume1 className="w-4 h-4 text-zinc-300" />
                   ) : (
-                    <Volume2 className="w-4 h-4" />
+                    <Volume2 className="w-4 h-4 text-zinc-200" />
                   )}
                 </button>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => setVolume(parseFloat(e.target.value))}
-                  className="w-20 h-1 accent-white bg-white/20 rounded-lg cursor-pointer"
-                />
+                <div className="flex items-center w-28 sm:w-32 h-6 cursor-pointer">
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={isMuted ? 0 : volume}
+                    onInput={(e) => {
+                      const val = Math.max(0, Math.min(1, parseFloat((e.target as HTMLInputElement).value)));
+                      if (audioRef.current) {
+                        audioRef.current.volume = val;
+                        audioRef.current.muted = val === 0;
+                      }
+                      setVolume(val);
+                    }}
+                    onChange={(e) => {
+                      const val = Math.max(0, Math.min(1, parseFloat(e.target.value)));
+                      if (audioRef.current) {
+                        audioRef.current.volume = val;
+                        audioRef.current.muted = val === 0;
+                      }
+                      setVolume(val);
+                      if (isMuted && val > 0) toggleMute();
+                    }}
+                    className="w-full h-1.5 bg-white/20 accent-white rounded-full cursor-pointer transition-all"
+                  />
+                </div>
+                <span className="text-xs font-mono text-zinc-300 w-9 text-right select-none font-bold">
+                  {Math.round((isMuted ? 0 : volume) * 100)}%
+                </span>
               </div>
             </div>
           </div>

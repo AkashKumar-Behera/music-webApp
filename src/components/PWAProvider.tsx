@@ -72,9 +72,9 @@ export const PWAProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       {/* Floating Install App Toast (Only when installable and not in standalone) */}
       {showInstallBanner && !isStandalone && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[92%] bg-zinc-900/95 backdrop-blur-xl border border-emerald-500/30 rounded-2xl p-3.5 shadow-2xl shadow-emerald-950/40 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[92%] bg-zinc-900/95 backdrop-blur-xl border border-rose-500/30 rounded-2xl p-3.5 shadow-2xl shadow-rose-950/40 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-black font-bold flex-shrink-0 shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-400 flex items-center justify-center text-white font-bold flex-shrink-0 shadow-md">
               CB
             </div>
             <div className="min-w-0">
@@ -86,7 +86,7 @@ export const PWAProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <button
               onClick={handleInstallClick}
-              className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md active:scale-95"
             >
               <Download className="w-3.5 h-3.5" />
               Install

@@ -55,7 +55,7 @@ export const usePlayerStore = create<PlayerState>()(
       favorites: [],
       currentTime: 0,
       duration: 0,
-      volume: 0.8,
+      volume: 1.0,
       isMuted: false,
       repeatMode: 'off',
       isShuffled: false,
