@@ -444,11 +444,14 @@ export default function HomePage() {
                           onClick={() => handleArtistClick(`${alb.title} ${alb.artist}`)}
                           className="min-w-[150px] max-w-[150px] snap-start flex-shrink-0 group cursor-pointer"
                         >
-                          <div className="w-full aspect-square rounded-2xl overflow-hidden mb-2.5 bg-black/40 relative shadow-lg">
+                          <div className="w-full aspect-square rounded-2xl overflow-hidden mb-2.5 bg-zinc-900 relative shadow-lg">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={alb.thumbnail}
                               alt={alb.title}
+                              onError={(e) => {
+                                e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=60';
+                              }}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             />
                           </div>
@@ -475,11 +478,14 @@ export default function HomePage() {
                         onClick={() => handleArtistClick(pl.title)}
                         className="min-w-[150px] max-w-[150px] snap-start flex-shrink-0 group cursor-pointer"
                       >
-                        <div className="w-full aspect-square rounded-2xl overflow-hidden mb-2.5 bg-black/40 relative shadow-lg">
+                        <div className="w-full aspect-square rounded-2xl overflow-hidden mb-2.5 bg-zinc-900 relative shadow-lg">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={pl.thumbnail}
                             alt={pl.title}
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=60';
+                            }}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                         </div>

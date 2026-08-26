@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
                 title: alb.title?.toString() || 'Album',
                 artist: alb.artists?.[0]?.name?.toString() || cleanArtist,
                 year: (alb as any).year?.toString() || '',
-                thumbnail: alb.thumbnails?.[0]?.url || '/placeholder.png',
+                thumbnail: getHighResThumbnail(alb.thumbnails, alb.id),
               });
             }
           }
@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
                 album: item.album?.name?.toString(),
                 duration: typeof item.duration?.seconds === 'number' ? item.duration.seconds : 0,
                 durationFormatted: item.duration?.text || '3:30',
-                thumbnail: item.thumbnails?.[0]?.url || `https://i.ytimg.com/vi/${item.id}/hqdefault.jpg`,
+                thumbnail: getHighResThumbnail(item.thumbnails, item.id),
               });
             }
           }
@@ -143,7 +143,7 @@ export async function GET(req: NextRequest) {
                 title: pl.title?.toString() || 'Playlist',
                 author: (pl as any).author?.name?.toString() || 'CloudBeatz',
                 itemCount: (pl as any).item_count || '25+ Songs',
-                thumbnail: pl.thumbnails?.[0]?.url || '/placeholder.png',
+                thumbnail: getHighResThumbnail(pl.thumbnails, pl.id),
               });
             }
           }
