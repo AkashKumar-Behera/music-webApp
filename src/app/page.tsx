@@ -36,50 +36,187 @@ import {
 
 const INITIAL_FALLBACK_TRACKS: Track[] = [
   {
-    id: 'foEUtbLVBgw',
-    title: 'Ride It (Kya Yehi Pyaar Hai)',
-    artist: 'Jay Sean, Sagar',
-    album: 'All or Nothing',
-    duration: 194,
-    durationFormatted: '3:14',
-    thumbnail: 'https://i.ytimg.com/vi/foEUtbLVBgw/hqdefault.jpg',
+    id: '34Na4j8AVgA',
+    title: 'Starboy (feat. Daft Punk)',
+    artist: 'The Weeknd',
+    album: 'Starboy',
+    duration: 230,
+    durationFormatted: '3:50',
+    thumbnail: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg',
   },
   {
-    id: '2g5Hz1AsCBo',
-    title: 'Kesariya - Brahmāstra',
-    artist: 'Arijit Singh, Pritam',
-    album: 'Brahmāstra',
-    duration: 268,
-    durationFormatted: '4:28',
+    id: '4NRXx6U8ABQ',
+    title: 'Blinding Lights',
+    artist: 'The Weeknd',
+    album: 'After Hours',
+    duration: 200,
+    durationFormatted: '3:20',
+    thumbnail: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg',
+  },
+  {
+    id: '5NV6Rdv1a3I',
+    title: 'Get Lucky (Radio Edit)',
+    artist: 'Daft Punk, Pharrell Williams',
+    album: 'Random Access Memories',
+    duration: 248,
+    durationFormatted: '4:08',
+    thumbnail: 'https://i.ytimg.com/vi/5NV6Rdv1a3I/hqdefault.jpg',
+  },
+  {
+    id: 'kTJczUoc268',
+    title: 'STAY',
+    artist: 'The Kid LAROI, Justin Bieber',
+    album: 'F*CK LOVE 3',
+    duration: 141,
+    durationFormatted: '2:21',
+    thumbnail: 'https://i.ytimg.com/vi/kTJczUoc268/hqdefault.jpg',
+  },
+  {
+    id: 'JGwWNGJdvx8',
+    title: 'Shape of You',
+    artist: 'Ed Sheeran',
+    album: '÷ (Divide)',
+    duration: 233,
+    durationFormatted: '3:53',
+    thumbnail: 'https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg',
+  },
+  {
+    id: '2Vv-BfVoq4g',
+    title: 'Sapphire',
+    artist: 'Ed Sheeran',
+    album: '= (Equals)',
+    duration: 198,
+    durationFormatted: '3:18',
+    thumbnail: 'https://i.ytimg.com/vi/2Vv-BfVoq4g/hqdefault.jpg',
+  },
+  {
+    id: 'nYh-n7EOtMA',
+    title: 'Cheap Thrills',
+    artist: 'Sia',
+    album: 'This Is Acting',
+    duration: 211,
+    durationFormatted: '3:31',
+    thumbnail: 'https://i.ytimg.com/vi/nYh-n7EOtMA/hqdefault.jpg',
+  },
+  {
+    id: 'H5v3kku4y6Q',
+    title: 'As It Was',
+    artist: 'Harry Styles',
+    album: "Harry's House",
+    duration: 167,
+    durationFormatted: '2:47',
+    thumbnail: 'https://i.ytimg.com/vi/H5v3kku4y6Q/hqdefault.jpg',
+  },
+  {
+    id: 'qFLhGq0060w',
+    title: 'I Feel It Coming (feat. Daft Punk)',
+    artist: 'The Weeknd',
+    album: 'Starboy',
+    duration: 269,
+    durationFormatted: '4:29',
+    thumbnail: 'https://i.ytimg.com/vi/qFLhGq0060w/hqdefault.jpg',
+  },
+  {
+    id: 'KEI4qSrkPAs',
+    title: "Can't Feel My Face",
+    artist: 'The Weeknd',
+    album: 'Beauty Behind the Madness',
+    duration: 213,
+    durationFormatted: '3:33',
+    thumbnail: 'https://i.ytimg.com/vi/KEI4qSrkPAs/hqdefault.jpg',
+  },
+  {
+    id: 'XXYlFuWEuKi',
+    title: 'Save Your Tears',
+    artist: 'The Weeknd',
+    album: 'After Hours',
+    duration: 215,
+    durationFormatted: '3:35',
+    thumbnail: 'https://i.ytimg.com/vi/XXYlFuWEuKi/hqdefault.jpg',
+  },
+  {
+    id: 'nfs8NYg7yQM',
+    title: 'Attention',
+    artist: 'Charlie Puth',
+    album: 'Voicenotes',
+    duration: 208,
+    durationFormatted: '3:28',
+    thumbnail: 'https://i.ytimg.com/vi/nfs8NYg7yQM/hqdefault.jpg',
+  },
+];
+
+const DEFAULT_ALBUMS = [
+  {
+    id: 'alb_1',
+    title: 'Starboy',
+    artist: 'The Weeknd',
+    year: '2016',
+    thumbnail: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg',
+  },
+  {
+    id: 'alb_2',
+    title: 'The Highlights (Deluxe)',
+    artist: 'The Weeknd',
+    year: '2024',
+    thumbnail: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg',
+  },
+  {
+    id: 'alb_3',
+    title: 'House of Balloons',
+    artist: 'The Weeknd',
+    year: '2011',
+    thumbnail: 'https://i.ytimg.com/vi/O1OTWC29Ans/hqdefault.jpg',
+  },
+  {
+    id: 'alb_4',
+    title: 'After Hours',
+    artist: 'The Weeknd',
+    year: '2020',
+    thumbnail: 'https://i.ytimg.com/vi/XXYlFuWEuKi/hqdefault.jpg',
+  },
+  {
+    id: 'alb_5',
+    title: 'Dawn FM',
+    artist: 'The Weeknd',
+    year: '2022',
+    thumbnail: 'https://i.ytimg.com/vi/u9n7Cw-4_PE/hqdefault.jpg',
+  },
+];
+
+const DEFAULT_PLAYLISTS = [
+  {
+    id: 'pl_1',
+    title: 'Rain Therapy 🍀🌧️',
+    author: 'CloudBeatz Curated',
+    thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=60',
+  },
+  {
+    id: 'pl_2',
+    title: 'Bollywood Hits',
+    author: 'Arijit Singh, Pritam',
     thumbnail: 'https://i.ytimg.com/vi/2g5Hz1AsCBo/hqdefault.jpg',
   },
   {
-    id: 'kJQP7kiw5Fk',
-    title: 'Despacito',
-    artist: 'Luis Fonsi, Daddy Yankee',
-    album: 'VIDA',
-    duration: 282,
-    durationFormatted: '4:42',
-    thumbnail: 'https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg',
+    id: 'pl_3',
+    title: 'Late Night Drive',
+    author: 'The Weeknd & Synthwave',
+    thumbnail: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg',
   },
   {
-    id: '50VNCymT-Cs',
-    title: 'Tu Hai Kahan - AUR',
-    artist: 'AUR, Usama, Raffey',
-    album: 'Tu Hai Kahan',
-    duration: 263,
-    durationFormatted: '4:23',
-    thumbnail: 'https://i.ytimg.com/vi/50VNCymT-Cs/hqdefault.jpg',
+    id: 'pl_4',
+    title: 'Global Pop Hits',
+    author: 'Billboard Hot 100',
+    thumbnail: 'https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg',
   },
 ];
 
 const FEATURED_ARTISTS = [
   { name: 'The Weeknd', query: 'The Weeknd songs', image: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg' },
   { name: 'Arijit Singh', query: 'Arijit Singh songs', image: 'https://i.ytimg.com/vi/2g5Hz1AsCBo/hqdefault.jpg' },
-  { name: 'Karan Aujla', query: 'Karan Aujla songs', image: 'https://i.ytimg.com/vi/cWMxCE2HTag/hqdefault.jpg' },
-  { name: 'Diljit Dosanjh', query: 'Diljit Dosanjh hits', image: 'https://i.ytimg.com/vi/cl0a3i2wFcc/hqdefault.jpg' },
-  { name: 'Jay Sean', query: 'Jay Sean songs', image: 'https://i.ytimg.com/vi/foEUtbLVBgw/hqdefault.jpg' },
-  { name: 'Shreya Ghoshal', query: 'Shreya Ghoshal hits', image: 'https://i.ytimg.com/vi/aLkd70P6QW4/hqdefault.jpg' },
+  { name: 'Ed Sheeran', query: 'Ed Sheeran songs', image: 'https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg' },
+  { name: 'Daft Punk', query: 'Daft Punk songs', image: 'https://i.ytimg.com/vi/5NV6Rdv1a3I/hqdefault.jpg' },
+  { name: 'Dua Lipa', query: 'Dua Lipa hits', image: 'https://i.ytimg.com/vi/bY1T2g6l4nE/hqdefault.jpg' },
+  { name: 'Coldplay', query: 'Coldplay hits', image: 'https://i.ytimg.com/vi/VPRjCeoBqrI/hqdefault.jpg' },
 ];
 
 export default function HomePage() {
@@ -102,8 +239,8 @@ export default function HomePage() {
   // Tab Data States
   const [tracks, setTracks] = useState<Track[]>(INITIAL_FALLBACK_TRACKS);
   const [offlineTracks, setOfflineTracks] = useState<Track[]>([]);
-  const [playlists, setPlaylists] = useState<any[]>([]);
-  const [albums, setAlbums] = useState<any[]>([]);
+  const [playlists, setPlaylists] = useState<any[]>(DEFAULT_PLAYLISTS);
+  const [albums, setAlbums] = useState<any[]>(DEFAULT_ALBUMS);
 
   // BOLI State
   const [boliData, setBoliData] = useState<{
@@ -374,7 +511,7 @@ export default function HomePage() {
             {/* 🏠 TAB 1: HOME / DISCOVER (BOLI Dynamic Engine - Screenshots 1, 2, 3, 4)   */}
             {/* ========================================================================= */}
             {activeTab === 'home' && (
-              <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-300 pb-24">
+              <div className="p-4 sm:p-8 pt-8 sm:pt-10 space-y-8 animate-in fade-in duration-300 pb-24">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-extrabold text-white tracking-tight">Discover</h2>
                 </div>
@@ -431,7 +568,7 @@ export default function HomePage() {
                 {(boliData.artistAlbums.length > 0 ? boliData.artistAlbums : albums).length > 0 && (
                   <div className="space-y-4 pt-2">
                     <h3 className="text-lg font-bold text-white tracking-tight">
-                      {boliData.basedOn?.artist ? `${boliData.basedOn.artist} Albums` : 'Top & Trending Albums'}
+                      {boliData.basedOn?.artist ? `${boliData.basedOn.artist} Albums` : 'The Weeknd Albums'}
                     </h3>
 
                     <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
@@ -463,35 +600,37 @@ export default function HomePage() {
                 )}
 
                 {/* Section 3: Mood Playlists (Screenshot 4: "Rain Therapy 🍀🌧️") */}
-                <div className="space-y-4 pt-2">
-                  <h3 className="text-lg font-bold text-white tracking-tight">
-                    Rain Therapy 🍀🌧️
-                  </h3>
+                {(boliData.relatedPlaylists.length > 0 ? boliData.relatedPlaylists : playlists).length > 0 && (
+                  <div className="space-y-4 pt-2">
+                    <h3 className="text-lg font-bold text-white tracking-tight">
+                      {boliData.basedOn?.artist ? `${boliData.basedOn.artist} Mixes` : 'Rain Therapy 🍀🌧️'}
+                    </h3>
 
-                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
-                    {(boliData.relatedPlaylists.length > 0 ? boliData.relatedPlaylists : playlists).map((pl) => (
-                      <div
-                        key={pl.id}
-                        onClick={() => handleArtistClick(pl.title)}
-                        className="min-w-[150px] max-w-[150px] snap-start flex-shrink-0 group cursor-pointer"
-                      >
-                        <div className="w-full aspect-square rounded-2xl overflow-hidden mb-2.5 bg-zinc-900 relative shadow-lg">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={pl.thumbnail}
-                            alt={pl.title}
-                            onError={(e) => {
-                              e.currentTarget.src = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=60';
-                            }}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
+                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
+                      {(boliData.relatedPlaylists.length > 0 ? boliData.relatedPlaylists : playlists).map((pl) => (
+                        <div
+                          key={pl.id}
+                          onClick={() => handleArtistClick(pl.title)}
+                          className="min-w-[150px] max-w-[150px] snap-start flex-shrink-0 group cursor-pointer"
+                        >
+                          <div className="w-full aspect-square rounded-2xl overflow-hidden mb-2.5 bg-zinc-900 relative shadow-lg">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={pl.thumbnail}
+                              alt={pl.title}
+                              onError={(e) => {
+                                e.currentTarget.src = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=60';
+                              }}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          </div>
+                          <h4 className="text-xs font-bold text-white truncate">{pl.title}</h4>
+                          <p className="text-[11px] text-zinc-400 truncate mt-0.5">{pl.author || 'Mix'}</p>
                         </div>
-                        <h4 className="text-xs font-bold text-white truncate">{pl.title}</h4>
-                        <p className="text-[11px] text-zinc-400 truncate mt-0.5">{pl.author || 'Mix'}</p>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -740,7 +879,9 @@ export default function HomePage() {
         {/* Floating Search FAB Button on Mobile (Screenshots 1-4 Exact Replica) */}
         <button
           onClick={() => setIsSearchOpen(true)}
-          className="fixed bottom-20 right-4 md:hidden z-30 w-12 h-12 rounded-2xl bg-[#3b2a37] text-white flex items-center justify-center shadow-2xl border border-white/10 active:scale-95 transition-all hover:bg-[#4b3546]"
+          className={`fixed right-4 md:hidden z-30 w-12 h-12 rounded-2xl bg-[#3b2a37] text-white flex items-center justify-center shadow-2xl border border-white/10 active:scale-95 transition-all duration-300 ease-in-out hover:bg-[#4b3546] ${
+            currentTrack ? 'bottom-[86px]' : 'bottom-6'
+          }`}
           title="Search"
         >
           <Search className="w-5 h-5" />
