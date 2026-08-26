@@ -35,18 +35,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       {/* 📱 MOBILE VERTICAL ROTATED RAIL (Screenshot 1, 2, 4 Exact Replica)         */}
       {/* ========================================================================= */}
       <nav
-        className={`flex md:hidden flex-col items-center w-10 sm:w-12 select-none z-30 flex-shrink-0 bg-black/10 no-scrollbar ${
+        className={`flex md:hidden flex-col items-center w-10 sm:w-12 select-none z-30 flex-shrink-0 bg-transparent no-scrollbar ${
           currentTrack ? 'h-[calc(100vh-70px)]' : 'h-screen'
         }`}
       >
-        <div className="flex flex-col items-center space-y-9 sm:space-y-10 pt-14 sm:pt-16">
+        <div className="flex flex-col items-center space-y-4 sm:space-y-5 pt-14 sm:pt-16">
           {mainNavItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`py-1 transition-all duration-200 cursor-pointer flex items-center justify-center ${
+                className={`py-0.5 transition-all duration-200 cursor-pointer flex items-center justify-center ${
                   isActive ? 'scale-105 font-bold text-white' : 'text-zinc-500 hover:text-zinc-300 font-medium'
                 }`}
                 style={{

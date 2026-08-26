@@ -71,25 +71,17 @@ export const SearchView: React.FC<SearchViewProps> = ({
       ? backgroundColor || '#160913'
       : '#09090b';
 
-  // Load Search History from LocalStorage
+  // Load Search History from LocalStorage (empty by default)
   useEffect(() => {
     try {
       const saved = localStorage.getItem('cloudbeatz_search_history');
       if (saved) {
         setHistory(JSON.parse(saved));
       } else {
-        setHistory([
-          'i feel it coming',
-          'Chaandni',
-          'shinobu e wa',
-          'despacito english version',
-          'despacito',
-          'haal e dil',
-          'the weeknd',
-        ]);
+        setHistory([]);
       }
     } catch {
-      // ignore
+      setHistory([]);
     }
   }, []);
 
