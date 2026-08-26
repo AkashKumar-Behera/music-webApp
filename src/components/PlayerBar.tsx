@@ -187,6 +187,21 @@ export const PlayerBar: React.FC = () => {
           },
         ],
       });
+      // Explicitly set media session action handlers synchronously with metadata so iOS displays |< and >| buttons
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        usePlayerStore.getState().nextTrack();
+      });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        usePlayerStore.getState().prevTrack();
+      });
+
+      // Explicitly nullify 10s skip seek handlers to force iOS to show |< and >|
+      try {
+        navigator.mediaSession.setActionHandler('seekbackward', null);
+        navigator.mediaSession.setActionHandler('seekforward', null);
+      } catch {
+        // ignore
+      }
     } catch {
       // ignore
     }
@@ -214,9 +229,12 @@ export const PlayerBar: React.FC = () => {
     navigator.mediaSession.setActionHandler('play', () => {
       setIsPlaying(true);
       if (audioRef.current) {
-        audioRef.current.play().catch((err) => {
-          console.warn('Lockscreen play resume error:', err);
-        });
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.warn('Lockscreen play resume warning:', err);
+          });
+        }
       }
     });
 
