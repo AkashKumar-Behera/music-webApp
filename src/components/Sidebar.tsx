@@ -44,7 +44,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
       {/* Main Nav Items */}
       <div className="space-y-1.5">
-        <p className="px-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Library & Discover</p>
+        <p className="px-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2" suppressHydrationWarning>
+          Discover
+        </p>
         {mainNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
