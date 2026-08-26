@@ -343,9 +343,9 @@ const DEFAULT_PLAYLISTS = [
   },
   {
     id: 'pl_2',
-    title: 'Rain Therapy 🍀🌧️',
+    title: 'Community Playlists',
     author: 'CloudBeatz Curated',
-    thumbnail: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=600&auto=format&fit=crop&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
   },
   {
     id: 'pl_3',
@@ -503,10 +503,10 @@ export default function HomePage() {
       return;
     }
     const samplePlaylists = [
-      { id: 'rain_therapy', title: 'Rain Therapy 🍀🌧️', author: 'CloudBeatz Vibe', itemCount: '50 Songs', thumbnail: 'https://i.ytimg.com/vi/2g5Hz1AsCBo/hqdefault.jpg' },
-      { id: 'romance_now', title: 'Romance Right Now', author: 'Bollywood Love', itemCount: '40 Songs', thumbnail: 'https://i.ytimg.com/vi/foEUtbLVBgw/hqdefault.jpg' },
-      { id: 'punjabi_hotlist', title: 'Punjabi Hotlist 2026', author: 'Hits Radio', itemCount: '35 Songs', thumbnail: 'https://i.ytimg.com/vi/cWMxCE2HTag/hqdefault.jpg' },
-      { id: 'lofi_chill', title: 'Lo-Fi Chill & Focus', author: 'CloudBeatz', itemCount: '60 Songs', thumbnail: 'https://i.ytimg.com/vi/50VNCymT-Cs/hqdefault.jpg' },
+      { id: 'top_global_hits', title: 'Top Global Hits', author: 'CloudBeatz Vibe', itemCount: '50 Songs', thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80' },
+      { id: 'romance_now', title: 'Romance Right Now', author: 'Bollywood Love', itemCount: '40 Songs', thumbnail: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80' },
+      { id: 'punjabi_hotlist', title: 'Punjabi Hotlist 2026', author: 'Hits Radio', itemCount: '35 Songs', thumbnail: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&auto=format&fit=crop&q=80' },
+      { id: 'lofi_chill', title: 'Lo-Fi Chill & Focus', author: 'CloudBeatz', itemCount: '60 Songs', thumbnail: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80' },
     ];
     setPlaylists(samplePlaylists);
     CacheService.set('static_playlists', samplePlaylists, 180);
@@ -750,11 +750,11 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {/* Section 3: Mood Playlists (Screenshot 4: "Rain Therapy 🍀🌧️") */}
+                {/* Section 3: Community Playlists (Screenshot 5 Left Exact Replica) */}
                 {(boliData.relatedPlaylists.length > 0 ? boliData.relatedPlaylists : playlists).length > 0 && (
                   <div className="space-y-4 pt-2">
                     <h3 className="text-lg font-bold text-white tracking-tight">
-                      {boliData.basedOn?.artist ? `${boliData.basedOn.artist} Mixes` : 'Rain Therapy 🍀🌧️'}
+                      {boliData.basedOn?.artist ? `${boliData.basedOn.artist} Mixes` : 'Community playlists'}
                     </h3>
 
                     <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
