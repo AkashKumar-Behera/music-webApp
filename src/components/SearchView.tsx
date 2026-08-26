@@ -272,27 +272,27 @@ export const SearchView: React.FC<SearchViewProps> = ({
       {submittedQuery && !viewAllCategory && (
         <div className="flex-1 flex overflow-hidden">
           {/* Left Vertical Sub-Rail with Top Back Button */}
-          <div className="w-14 sm:w-16 bg-black/25 border-r border-white/5 flex flex-col justify-start items-center py-3.5 select-none flex-shrink-0 overflow-y-auto scrollbar-none">
+          <div className="w-12 sm:w-14 bg-black/20 flex flex-col justify-start items-center py-3 select-none flex-shrink-0 overflow-y-auto no-scrollbar">
             {/* Top Back Button inside Left Rail */}
             <button
               onClick={handleBack}
-              className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors mb-6 flex-shrink-0"
+              className="p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors mb-5 flex-shrink-0"
               title="Back"
             >
-              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
 
             {/* Rotated Sub Tabs */}
-            <div className="flex flex-col gap-8 items-center py-2 flex-1">
+            <div className="flex flex-col gap-6 sm:gap-7 items-center py-1 flex-1">
               {subTabs.map((tab) => {
                 const isActive = activeSubTab === tab;
                 return (
                   <button
                     key={tab}
                     onClick={() => setActiveSubTab(tab)}
-                    className={`[writing-mode:vertical-rl] rotate-180 text-[11px] font-bold tracking-wider uppercase whitespace-nowrap transition-all py-1 ${
+                    className={`[writing-mode:vertical-rl] rotate-180 text-[9px] sm:text-[10px] font-bold tracking-wider uppercase whitespace-nowrap transition-all py-0.5 ${
                       isActive
-                        ? 'text-white border-r-2 border-white font-extrabold pr-1'
+                        ? 'text-white border-r-2 border-white font-black pr-0.5'
                         : 'text-zinc-500 hover:text-zinc-300'
                     }`}
                   >
@@ -530,18 +530,18 @@ export const SearchView: React.FC<SearchViewProps> = ({
       {submittedQuery && viewAllCategory && (
         <div className="flex-1 flex overflow-hidden">
           {/* Left Vertical Sub-Rail with Top Back Button */}
-          <div className="w-14 sm:w-16 bg-black/20 flex flex-col justify-start items-center py-3.5 select-none flex-shrink-0 overflow-y-auto scrollbar-none">
+          <div className="w-12 sm:w-14 bg-black/20 flex flex-col justify-start items-center py-3 select-none flex-shrink-0 overflow-y-auto no-scrollbar">
             {/* Top Back Button inside Left Rail */}
             <button
               onClick={() => setViewAllCategory(null)}
-              className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors mb-6 flex-shrink-0"
+              className="p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors mb-5 flex-shrink-0"
               title="Back"
             >
-              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
 
             {/* Rotated Sub Tabs */}
-            <div className="flex flex-col gap-8 items-center py-2 flex-1">
+            <div className="flex flex-col gap-6 sm:gap-7 items-center py-1 flex-1">
               {subTabs.map((tab) => {
                 const isActive = viewAllCategory === tab;
                 return (
@@ -555,9 +555,9 @@ export const SearchView: React.FC<SearchViewProps> = ({
                         setViewAllCategory(tab);
                       }
                     }}
-                    className={`[writing-mode:vertical-rl] rotate-180 text-[11px] font-bold tracking-wider uppercase whitespace-nowrap transition-all py-1 ${
+                    className={`[writing-mode:vertical-rl] rotate-180 text-[9px] sm:text-[10px] font-bold tracking-wider uppercase whitespace-nowrap transition-all py-0.5 ${
                       isActive
-                        ? 'text-white border-r-2 border-white font-extrabold pr-1'
+                        ? 'text-white border-r-2 border-white font-black pr-0.5'
                         : 'text-zinc-500 hover:text-zinc-300'
                     }`}
                   >

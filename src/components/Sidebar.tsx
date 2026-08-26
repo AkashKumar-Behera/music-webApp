@@ -35,26 +35,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       {/* 📱 MOBILE VERTICAL ROTATED RAIL (Screenshot 1, 2, 4 Exact Replica)         */}
       {/* ========================================================================= */}
       <nav
-        className={`flex md:hidden flex-col justify-between items-center w-12 sm:w-14 py-6 select-none z-30 flex-shrink-0 bg-black/10 ${
+        className={`flex md:hidden flex-col justify-between items-center w-10 sm:w-12 py-5 select-none z-30 flex-shrink-0 bg-black/10 no-scrollbar ${
           currentTrack ? 'h-[calc(100vh-70px)]' : 'h-screen'
         }`}
       >
-        <div className="flex flex-col items-center space-y-9 pt-4">
+        <div className="flex flex-col items-center space-y-6 sm:space-y-7 pt-3">
           {mainNavItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`py-2 transition-all duration-200 cursor-pointer flex items-center justify-center ${
-                  isActive ? 'scale-110 font-bold text-white' : 'text-zinc-500 hover:text-zinc-300 font-medium'
+                className={`py-1 transition-all duration-200 cursor-pointer flex items-center justify-center ${
+                  isActive ? 'font-black text-white' : 'text-zinc-500 hover:text-zinc-300 font-medium'
                 }`}
                 style={{
                   writingMode: 'vertical-rl',
                   transform: 'rotate(180deg)',
                 }}
               >
-                <span className={`text-[13px] tracking-wide ${isActive ? 'text-white' : 'text-zinc-400'}`}>
+                <span className={`text-[10px] sm:text-[11px] uppercase tracking-wider ${isActive ? 'text-white font-black' : 'text-zinc-500'}`}>
                   {item.label}
                 </span>
               </button>
