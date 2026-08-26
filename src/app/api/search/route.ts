@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInnertube } from '@/lib/youtube';
-import { Track } from '@/lib/types';
+import { Track, getHighResThumbnail } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,9 +23,7 @@ export async function GET(req: NextRequest) {
       for (const item of contents) {
         if ('id' in item && item.id && item.title) {
           const durationSec = typeof item.duration?.seconds === 'number' ? item.duration.seconds : 0;
-          const thumbnail =
-            item.thumbnails?.[0]?.url ||
-            `https://i.ytimg.com/vi/${item.id}/hqdefault.jpg`;
+          const thumbnail = getHighResThumbnail(item.thumbnails, item.id);
 
           tracks.push({
             id: item.id,

@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { useThemeStore } from '@/lib/themeStore';
+import { getHighResThumbnail } from '@/lib/types';
 import {
   Play,
   Pause,
@@ -137,7 +138,7 @@ export const FullScreenPlayer: React.FC = () => {
         <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 rounded-3xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 flex-shrink-0 group">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={currentTrack.thumbnail || '/placeholder.png'}
+            src={getHighResThumbnail(currentTrack.thumbnail, currentTrack.id)}
             alt={currentTrack.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
           />

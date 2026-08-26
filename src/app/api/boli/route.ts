@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInnertube } from '@/lib/youtube';
-import { Track } from '@/lib/types';
+import { Track, getHighResThumbnail } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
                       album: item.album?.name?.toString(),
                       duration: durationSec,
                       durationFormatted: item.duration?.text || '3:30',
-                      thumbnail: item.thumbnails?.[0]?.url || `https://i.ytimg.com/vi/${item.id}/hqdefault.jpg`,
+                      thumbnail: getHighResThumbnail(item.thumbnails, item.id),
                     });
                   }
                 }
