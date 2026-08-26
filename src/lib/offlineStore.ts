@@ -15,6 +15,20 @@ export interface OfflineTrackRecord {
   cachedAt: number;
 }
 
+export type CacheLimitOption = '30' | '50' | '100' | 'unlimited';
+
+const CACHE_LIMIT_KEY = 'cloudbeatz_cache_limit';
+
+export const getStoredCacheLimit = (): CacheLimitOption => {
+  if (typeof window === 'undefined') return '50';
+  return (localStorage.getItem(CACHE_LIMIT_KEY) as CacheLimitOption) || '50';
+};
+
+export const setStoredCacheLimit = (limit: CacheLimitOption): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(CACHE_LIMIT_KEY, limit);
+};
+
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined') {
@@ -35,9 +49,29 @@ const openDB = (): Promise<IDBDatabase> => {
 };
 
 export const OfflineStore = {
+  getLimit: getStoredCacheLimit,
+  setLimit: setStoredCacheLimit,
+
   async saveTrack(track: Track, audioBlob: Blob): Promise<void> {
     try {
       const db = await openDB();
+
+      // Check cache limit and prune oldest if limit reached
+      const limit = getStoredCacheLimit();
+      if (limit !== 'unlimited') {
+        const maxTracks = parseInt(limit, 10) || 50;
+        const all = await this.getAllRecords();
+        if (all.length >= maxTracks) {
+          // Sort oldest first
+          all.sort((a, b) => a.cachedAt - b.cachedAt);
+          // Delete oldest to make room
+          const toDelete = all.slice(0, all.length - maxTracks + 1);
+          for (const item of toDelete) {
+            await this.deleteTrack(item.id);
+          }
+        }
+      }
+
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
 
@@ -57,6 +91,22 @@ export const OfflineStore = {
       });
     } catch (e) {
       console.warn('OfflineStore save error:', e);
+    }
+  },
+
+  async getAllRecords(): Promise<OfflineTrackRecord[]> {
+    try {
+      const db = await openDB();
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAll();
+
+      return new Promise((resolve) => {
+        req.onsuccess = () => resolve((req.result || []) as OfflineTrackRecord[]);
+        req.onerror = () => resolve([]);
+      });
+    } catch {
+      return [];
     }
   },
 

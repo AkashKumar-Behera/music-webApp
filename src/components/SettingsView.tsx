@@ -156,6 +156,36 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
+        {/* Cache Storage Limit Selector (30, 50, 100, Unlimited) */}
+        <div className="pt-2 border-t border-white/5 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-zinc-300">Auto-Cache Limit</p>
+            <span className="text-[11px] text-zinc-500">Oldest tracks pruned when full</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {(['30', '50', '100', 'unlimited'] as const).map((lim) => {
+              const currentLimit = OfflineStore.getLimit();
+              const isSelected = currentLimit === lim;
+              return (
+                <button
+                  key={lim}
+                  onClick={() => {
+                    OfflineStore.setLimit(lim);
+                    updateStats();
+                  }}
+                  className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border ${
+                    isSelected
+                      ? 'bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-500/25'
+                      : 'bg-white/5 text-zinc-400 border-white/5 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {lim === 'unlimited' ? 'Unlimited' : `${lim} Songs`}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="flex justify-end pt-1">
           <button
             onClick={handleClearOffline}

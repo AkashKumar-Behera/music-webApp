@@ -229,6 +229,25 @@ export const PlayerBar: React.FC = () => {
   }, [togglePlay, toggleMute, duration, setCurrentTime]);
 
   const handleTrackEnded = async () => {
+    if (currentTrack) {
+      // Auto-cache completed song into IndexedDB for 0-internet offline playback
+      OfflineStore.getTrackBlob(currentTrack.id).then(async (blob) => {
+        if (!blob) {
+          try {
+            const streamResp = await fetch(`/api/stream?id=${currentTrack.id}`);
+            if (streamResp.ok) {
+              const audioBlob = await streamResp.blob();
+              if (audioBlob && audioBlob.size > 100000) {
+                await OfflineStore.saveTrack(currentTrack, audioBlob);
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+      });
+    }
+
     if (repeatMode === 'one') {
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
