@@ -129,6 +129,48 @@ export const OfflineStore = {
     }
   },
 
+  async isCached(id: string): Promise<boolean> {
+    try {
+      const blob = await this.getTrackBlob(id);
+      return !!blob && blob.size > 10000;
+    } catch {
+      return false;
+    }
+  },
+
+  async getCachedAudioUrl(id: string): Promise<string | null> {
+    try {
+      const blob = await this.getTrackBlob(id);
+      if (blob && blob.size > 10000) {
+        return URL.createObjectURL(blob);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
+  async cacheTrack(track: Track): Promise<boolean> {
+    try {
+      if (!track || !track.id) return false;
+      const already = await this.isCached(track.id);
+      if (already) return true;
+
+      const streamUrl = `/api/stream?id=${track.id}&title=${encodeURIComponent(track.title || '')}&artist=${encodeURIComponent(track.artist || '')}`;
+      const res = await fetch(streamUrl);
+      if (!res.ok) return false;
+      const blob = await res.blob();
+      if (blob && blob.size > 10000) {
+        await this.saveTrack(track, blob);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.warn('Auto-cache track error:', err);
+      return false;
+    }
+  },
+
   async getAllTracks(): Promise<Track[]> {
     try {
       const db = await openDB();

@@ -106,50 +106,46 @@ export const PlayerBar: React.FC = () => {
     touchStartX.current = null;
   };
 
-  // Resolve stream: Check Offline IndexedDB first, else stream from backend
+  const prefetchTriggeredRef = useRef<string | null>(null);
+
+  // 1. Resolve Audio Source & Auto-Cache in Background
   useEffect(() => {
-    let isCancelled = false;
     if (!currentTrack) {
       setActiveAudioSrc('');
       return;
     }
 
+    prefetchTriggeredRef.current = null;
+    let isCancelled = false;
+
     const resolveStream = async () => {
-      // 1. Check if cached in IndexedDB
-      const cachedBlob = await OfflineStore.getTrackBlob(currentTrack.id);
-      if (cachedBlob && !isCancelled) {
-        const localBlobUrl = URL.createObjectURL(cachedBlob);
-        setActiveAudioSrc(localBlobUrl);
+      setIsLoading(true);
+
+      // A. Check if already cached in IndexedDB for 0ms offline instant playback
+      const cachedBlobUrl = await OfflineStore.getCachedAudioUrl(currentTrack.id);
+      if (cachedBlobUrl && !isCancelled) {
+        setActiveAudioSrc(cachedBlobUrl);
+        setIsLoading(false);
         return;
       }
 
-      // 2. Stream from backend API
-      const networkSrc = `/api/stream?id=${currentTrack.id}`;
+      // B. Network stream URL
+      const networkSrc = `/api/stream?id=${currentTrack.id}&title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(currentTrack.artist)}`;
       if (!isCancelled) {
         setActiveAudioSrc(networkSrc);
       }
 
-      // 3. Cache audio blob in background for 0-internet offline playback
-      try {
-        const streamResp = await fetch(networkSrc);
-        if (streamResp.ok) {
-          const blob = await streamResp.blob();
-          if (blob && blob.size > 100000) {
-            await OfflineStore.saveTrack(currentTrack, blob);
-          }
-        }
-      } catch {
-        // Offline or background network interrupted, ignore
-      }
+      // C. Background resilient caching to IndexedDB (so song is saved automatically for offline use)
+      OfflineStore.cacheTrack(currentTrack).catch(() => {});
     };
 
     resolveStream();
     return () => {
       isCancelled = true;
     };
-  }, [currentTrack]);
+  }, [currentTrack?.id]);
 
-  // Handle Track Play / Pause transitions
+  // 2. Handle Track Play / Pause transitions
   useEffect(() => {
     if (!currentTrack || !audioRef.current) return;
 
@@ -163,9 +159,9 @@ export const PlayerBar: React.FC = () => {
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying, currentTrack, activeAudioSrc]);
+  }, [isPlaying, currentTrack?.id, activeAudioSrc]);
 
-  // Handle Volume & Mute Sync
+  // 3. Handle Volume & Mute Sync
   useEffect(() => {
     if (audioRef.current) {
       const targetVol = isMuted ? 0 : Math.max(0, Math.min(1, volume));
@@ -174,22 +170,31 @@ export const PlayerBar: React.FC = () => {
     }
   }, [volume, isMuted]);
 
-  // MediaSession API for Native Lock Screen & Notification Controls (iOS Lock Screen / Android Notification)
+  // 4. MediaSession Metadata (Title, Artist, Artwork) - ONLY runs when song ID changes (ZERO flicker)
   useEffect(() => {
     if (!currentTrack || typeof window === 'undefined' || !('mediaSession' in navigator)) return;
 
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentTrack.title,
-      artist: currentTrack.artist,
-      album: currentTrack.album || 'CloudBeatz',
-      artwork: [
-        {
-          src: currentTrack.thumbnail || '/icon.png',
-          sizes: '512x512',
-          type: 'image/jpeg',
-        },
-      ],
-    });
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentTrack.title,
+        artist: currentTrack.artist,
+        album: currentTrack.album || 'CloudBeatz',
+        artwork: [
+          {
+            src: currentTrack.thumbnail || '/icon.png',
+            sizes: '512x512',
+            type: 'image/jpeg',
+          },
+        ],
+      });
+    } catch {
+      // ignore
+    }
+  }, [currentTrack?.id]);
+
+  // 5. MediaSession Action Handlers & Position State (Native Lock Screen / Dynamic Island)
+  useEffect(() => {
+    if (!currentTrack || typeof window === 'undefined' || !('mediaSession' in navigator)) return;
 
     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
 
@@ -198,18 +203,35 @@ export const PlayerBar: React.FC = () => {
       try {
         navigator.mediaSession.setPositionState({
           duration: trackDur,
-          playbackRate: audioRef.current?.playbackRate || 1,
+          playbackRate: 1,
           position: Math.min(currentTime, trackDur),
         });
       } catch {
-        // Ignore unsupported position state errors
+        // ignore
       }
     }
 
-    navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
-    navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
-    navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
-    navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
+    navigator.mediaSession.setActionHandler('play', () => {
+      setIsPlaying(true);
+      if (audioRef.current) {
+        audioRef.current.play().catch(() => {});
+      }
+    });
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      setIsPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    });
+
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      prevTrack();
+    });
+
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      nextTrack();
+    });
 
     try {
       navigator.mediaSession.setActionHandler('seekto', (details) => {
@@ -222,12 +244,23 @@ export const PlayerBar: React.FC = () => {
           }
           audioRef.current.currentTime = targetTime;
           setCurrentTime(details.seekTime);
+          if ('setPositionState' in navigator.mediaSession && tDur > 0) {
+            try {
+              navigator.mediaSession.setPositionState({
+                duration: tDur,
+                playbackRate: 1,
+                position: details.seekTime,
+              });
+            } catch {
+              // ignore
+            }
+          }
         }
       });
     } catch {
       // seekto not supported in some browsers
     }
-  }, [currentTrack, isPlaying, nextTrack, prevTrack, setIsPlaying, currentTime, setCurrentTime]);
+  }, [currentTrack?.id, isPlaying, nextTrack, prevTrack, setIsPlaying, setCurrentTime]);
 
   // Keyboard Shortcuts (Space, Arrow Keys)
   useEffect(() => {
@@ -370,6 +403,15 @@ export const PlayerBar: React.FC = () => {
             if (trackDur > 0 && rawDur > trackDur * 1.6 && rawDur < trackDur * 2.4) {
               if (rawCurrent > trackDur) {
                 rawCurrent = rawCurrent / 2;
+              }
+            }
+
+            // Spotify-style Smart Pre-fetch: when within 15 seconds of track completion, pre-download next song
+            if (trackDur > 0 && trackDur - rawCurrent <= 15 && queue.length > 0) {
+              const nextSong = queue[0];
+              if (nextSong && prefetchTriggeredRef.current !== nextSong.id) {
+                prefetchTriggeredRef.current = nextSong.id;
+                OfflineStore.cacheTrack(nextSong).catch(() => {});
               }
             }
 

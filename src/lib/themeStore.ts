@@ -13,6 +13,29 @@ interface ThemeState {
   extractColorsFromImage: (imageUrl: string) => void;
 }
 
+function updateMetaThemeColor(color: string) {
+  if (typeof document === 'undefined') return;
+  try {
+    let metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (!metaTheme) {
+      metaTheme = document.createElement('meta');
+      metaTheme.setAttribute('name', 'theme-color');
+      document.head.appendChild(metaTheme);
+    }
+    metaTheme.setAttribute('content', color);
+
+    let metaApple = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (!metaApple) {
+      metaApple = document.createElement('meta');
+      metaApple.setAttribute('name', 'apple-mobile-web-app-status-bar-style');
+      document.head.appendChild(metaApple);
+    }
+    metaApple.setAttribute('content', 'black-translucent');
+  } catch {
+    // ignore SSR error
+  }
+}
+
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
@@ -21,10 +44,18 @@ export const useThemeStore = create<ThemeState>()(
       accentColor: '#f43f5e',
       backgroundColor: '#160913',
 
-      setThemeMode: (mode) => set({ themeMode: mode }),
+      setThemeMode: (mode) => {
+        set({ themeMode: mode });
+        const bg = mode === 'dark' ? '#09090b' : mode === 'light' ? '#261622' : get().backgroundColor || '#160913';
+        updateMetaThemeColor(bg);
+      },
 
-      setColors: (dominant, accent, bg) =>
-        set({ dominantColor: dominant, accentColor: accent, backgroundColor: bg }),
+      setColors: (dominant, accent, bg) => {
+        set({ dominantColor: dominant, accentColor: accent, backgroundColor: bg });
+        if (get().themeMode === 'dynamic') {
+          updateMetaThemeColor(bg);
+        }
+      },
 
       extractColorsFromImage: (imageUrl) => {
         if (get().themeMode !== 'dynamic') return;
@@ -93,6 +124,7 @@ export const useThemeStore = create<ThemeState>()(
             const bg = `rgb(${bgR}, ${bgG}, ${bgB})`;
 
             set({ dominantColor: dominant, accentColor: accent, backgroundColor: bg });
+            updateMetaThemeColor(bg);
           } catch (err) {
             console.warn('Dynamic color extraction failed:', err);
           }
