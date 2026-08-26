@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '@/components/Sidebar';
 import { SearchBar } from '@/components/SearchBar';
+import { SearchView } from '@/components/SearchView';
 import { TrackCard } from '@/components/TrackCard';
 import { SettingsView } from '@/components/SettingsView';
 import { Track } from '@/lib/types';
@@ -84,6 +85,7 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -277,10 +279,51 @@ export default function HomePage() {
       >
         {/* Top Header Bar */}
         <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 py-3.5 bg-black/20 backdrop-blur-xl border-b border-white/5 gap-3">
-          <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+          <div className="hidden md:flex flex-1 max-w-xl">
+            <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+          </div>
+
+          <div className="md:hidden flex items-center justify-between w-full">
+            <h1 className="text-xl font-extrabold tracking-tight text-white capitalize">
+              {activeTab === 'home'
+                ? 'Discover'
+                : activeTab === 'songs'
+                ? 'Library Songs'
+                : activeTab === 'playlists'
+                ? 'Library Playlists'
+                : activeTab === 'albums'
+                ? 'Library Albums'
+                : activeTab === 'artists'
+                ? 'Library Artists'
+                : 'Settings'}
+            </h1>
+
+            {activeTab !== 'settings' && (
+              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5 flex-shrink-0">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    viewMode === 'grid' ? 'bg-white/20 text-white' : 'text-zinc-400 hover:text-white'
+                  }`}
+                  title="Grid View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    viewMode === 'list' ? 'bg-white/20 text-white' : 'text-zinc-400 hover:text-white'
+                  }`}
+                  title="List View"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
 
           {activeTab !== 'settings' && (
-            <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5 flex-shrink-0">
+            <div className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5 flex-shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-lg transition-colors ${
@@ -389,17 +432,17 @@ export default function HomePage() {
             transition={{ duration: 0.2 }}
           >
             {/* ========================================================================= */}
-            {/* 🏠 TAB 1: HOME / DISCOVER (BOLI Dynamic Engine - Screenshot 2 & 4)         */}
+            {/* 🏠 TAB 1: HOME / DISCOVER (BOLI Dynamic Engine - Screenshots 1, 2, 3, 4)   */}
             {/* ========================================================================= */}
             {activeTab === 'home' && (
-              <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-300 pb-20">
+              <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-300 pb-24">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-white tracking-tight">Discover</h2>
+                  <h2 className="text-2xl font-extrabold text-white tracking-tight">Discover</h2>
                 </div>
 
-                {/* Section 1: 2-Row Horizontal Scroll or Grid of Quick Picks */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {(boliData.quickPicks.length > 0 ? boliData.quickPicks.slice(0, 8) : tracks.slice(0, 8)).map(
+                {/* Section 1: 4-Row Horizontal Scrolling Grid (Screenshots 1-4 Exact Replica) */}
+                <div className="grid grid-rows-4 grid-flow-col auto-cols-[250px] sm:auto-cols-[280px] md:auto-cols-[300px] gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x">
+                  {(boliData.quickPicks.length > 0 ? boliData.quickPicks : tracks).map(
                     (track) => (
                       <div
                         key={track.id}
@@ -409,13 +452,16 @@ export default function HomePage() {
                             boliData.quickPicks.length > 0 ? boliData.quickPicks : tracks
                           )
                         }
-                        className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 transition-all cursor-pointer group select-none shadow-sm"
+                        className="flex items-center gap-3 p-2 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group select-none snap-start min-w-[250px]"
                       >
-                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/40 flex-shrink-0 relative shadow-md">
+                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-900 flex-shrink-0 relative shadow-md">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={track.thumbnail}
                             alt={track.title}
+                            onError={(e) => {
+                              e.currentTarget.src = `https://i.ytimg.com/vi/${track.id}/hqdefault.jpg`;
+                            }}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
                         </div>
@@ -430,7 +476,7 @@ export default function HomePage() {
                   )}
                 </div>
 
-                {/* Section 2: Artist Albums (Screenshot 2: "The Weeknd Albums") */}
+                {/* Section 2: Artist Albums (Screenshot 2: "The Weeknd Albums" / "Ed Sheeran Albums") */}
                 {(boliData.artistAlbums.length > 0 ? boliData.artistAlbums : albums).length > 0 && (
                   <div className="space-y-4 pt-2">
                     <h3 className="text-lg font-bold text-white tracking-tight">
@@ -740,20 +786,21 @@ export default function HomePage() {
         )}
         </AnimatePresence>
 
-        {/* Floating Search FAB Button on Mobile (Screenshots 2 & 4) */}
+        {/* Floating Search FAB Button on Mobile (Screenshots 1-4 Exact Replica) */}
         <button
-          onClick={() => {
-            const input = document.querySelector('input[type="text"]') as HTMLInputElement;
-            if (input) {
-              input.focus();
-              input.scrollIntoView({ behavior: 'smooth' });
-            }
-          }}
-          className="fixed bottom-20 right-4 md:hidden z-30 w-12 h-12 rounded-2xl bg-[#3b2a37] text-white flex items-center justify-center shadow-2xl border border-white/10 active:scale-95 transition-all"
+          onClick={() => setIsSearchOpen(true)}
+          className="fixed bottom-20 right-4 z-30 w-12 h-12 rounded-2xl bg-[#3b2a37] text-white flex items-center justify-center shadow-2xl border border-white/10 active:scale-95 transition-all hover:bg-[#4b3546]"
           title="Search"
         >
           <Search className="w-5 h-5" />
         </button>
+
+        {/* Dedicated CloudBeatz Search View Overlay (Screenshots 5-10) */}
+        <SearchView
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          onSelectArtistOrAlbum={handleArtistClick}
+        />
       </main>
     </div>
   );
