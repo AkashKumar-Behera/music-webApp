@@ -35,7 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       {/* 📱 MOBILE VERTICAL ROTATED RAIL (Screenshot 1, 2, 4 Exact Replica)         */}
       {/* ========================================================================= */}
       <nav
-        className={`flex md:hidden flex-col justify-between items-center w-12 sm:w-14 py-6 border-r border-white/5 select-none z-30 flex-shrink-0 bg-black/20 ${
+        className={`flex md:hidden flex-col justify-between items-center w-12 sm:w-14 py-6 select-none z-30 flex-shrink-0 bg-black/10 ${
           currentTrack ? 'h-[calc(100vh-70px)]' : 'h-screen'
         }`}
       >

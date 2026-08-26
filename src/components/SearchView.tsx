@@ -271,24 +271,33 @@ export const SearchView: React.FC<SearchViewProps> = ({
       {/* ========================================================================= */}
       {submittedQuery && !viewAllCategory && (
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Vertical Sub-Rail (With fixed height slots to completely prevent text overlap) */}
-          <div className="w-14 sm:w-16 bg-black/25 border-r border-white/5 flex flex-col justify-start items-center py-4 select-none flex-shrink-0 overflow-y-auto scrollbar-none">
-            <div className="flex flex-col gap-10 items-center w-full">
+          {/* Left Vertical Sub-Rail with Top Back Button */}
+          <div className="w-14 sm:w-16 bg-black/25 border-r border-white/5 flex flex-col justify-start items-center py-3.5 select-none flex-shrink-0 overflow-y-auto scrollbar-none">
+            {/* Top Back Button inside Left Rail */}
+            <button
+              onClick={handleBack}
+              className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors mb-6 flex-shrink-0"
+              title="Back"
+            >
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+
+            {/* Rotated Sub Tabs */}
+            <div className="flex flex-col gap-8 items-center py-2 flex-1">
               {subTabs.map((tab) => {
                 const isActive = activeSubTab === tab;
                 return (
-                  <div key={tab} className="h-16 flex items-center justify-center w-full">
-                    <button
-                      onClick={() => setActiveSubTab(tab)}
-                      className={`transform -rotate-90 origin-center text-[10px] font-bold tracking-wider uppercase whitespace-nowrap transition-all ${
-                        isActive
-                          ? 'text-white border-b-2 border-white pb-0.5'
-                          : 'text-zinc-500 hover:text-zinc-300'
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  </div>
+                  <button
+                    key={tab}
+                    onClick={() => setActiveSubTab(tab)}
+                    className={`[writing-mode:vertical-rl] rotate-180 text-[11px] font-bold tracking-wider uppercase whitespace-nowrap transition-all py-1 ${
+                      isActive
+                        ? 'text-white border-r-2 border-white font-extrabold pr-1'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    {tab}
+                  </button>
                 );
               })}
             </div>
@@ -296,18 +305,10 @@ export const SearchView: React.FC<SearchViewProps> = ({
 
           {/* Main Results Body */}
           <div className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-8 space-y-8">
-            {/* Header with Back Arrow */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleBack}
-                className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Search results</h1>
-                <p className="text-xs sm:text-sm text-zinc-400">for &quot;{submittedQuery}&quot;</p>
-              </div>
+            {/* Clean Header */}
+            <div>
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Search results</h1>
+              <p className="text-xs sm:text-sm text-zinc-400">for &quot;{submittedQuery}&quot;</p>
             </div>
 
             {isLoading ? (
@@ -528,31 +529,40 @@ export const SearchView: React.FC<SearchViewProps> = ({
       {/* ========================================================================= */}
       {submittedQuery && viewAllCategory && (
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Vertical Sub-Rail with fixed slot heights */}
-          <div className="w-14 sm:w-16 bg-black/25 border-r border-white/5 flex flex-col justify-start items-center py-4 select-none flex-shrink-0 overflow-y-auto scrollbar-none">
-            <div className="flex flex-col gap-10 items-center w-full">
+          {/* Left Vertical Sub-Rail with Top Back Button */}
+          <div className="w-14 sm:w-16 bg-black/20 flex flex-col justify-start items-center py-3.5 select-none flex-shrink-0 overflow-y-auto scrollbar-none">
+            {/* Top Back Button inside Left Rail */}
+            <button
+              onClick={() => setViewAllCategory(null)}
+              className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors mb-6 flex-shrink-0"
+              title="Back"
+            >
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+
+            {/* Rotated Sub Tabs */}
+            <div className="flex flex-col gap-8 items-center py-2 flex-1">
               {subTabs.map((tab) => {
                 const isActive = viewAllCategory === tab;
                 return (
-                  <div key={tab} className="h-16 flex items-center justify-center w-full">
-                    <button
-                      onClick={() => {
-                        if (tab === 'Results') {
-                          setViewAllCategory(null);
-                          setActiveSubTab('Results');
-                        } else {
-                          setViewAllCategory(tab);
-                        }
-                      }}
-                      className={`transform -rotate-90 origin-center text-[10px] font-bold tracking-wider uppercase whitespace-nowrap transition-all ${
-                        isActive
-                          ? 'text-white border-b-2 border-white pb-0.5'
-                          : 'text-zinc-500 hover:text-zinc-300'
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  </div>
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      if (tab === 'Results') {
+                        setViewAllCategory(null);
+                        setActiveSubTab('Results');
+                      } else {
+                        setViewAllCategory(tab);
+                      }
+                    }}
+                    className={`[writing-mode:vertical-rl] rotate-180 text-[11px] font-bold tracking-wider uppercase whitespace-nowrap transition-all py-1 ${
+                      isActive
+                        ? 'text-white border-r-2 border-white font-extrabold pr-1'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    {tab}
+                  </button>
                 );
               })}
             </div>
@@ -561,27 +571,19 @@ export const SearchView: React.FC<SearchViewProps> = ({
           {/* Full List Content */}
           <div className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-8 space-y-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setViewAllCategory(null)}
-                  className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
-                    {viewAllCategory}
-                  </h1>
-                  <p className="text-xs text-zinc-400">
-                    {viewAllCategory === 'Songs'
-                      ? `${searchResults.songs.length} items`
-                      : viewAllCategory === 'Albums'
-                      ? `${searchResults.albums.length} items`
-                      : viewAllCategory === 'Artists'
-                      ? `${searchResults.artists.length} items`
-                      : `${searchResults.videos.length} items`}
-                  </p>
-                </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                  {viewAllCategory}
+                </h1>
+                <p className="text-xs text-zinc-400">
+                  {viewAllCategory === 'Songs'
+                    ? `${searchResults.songs.length} items`
+                    : viewAllCategory === 'Albums'
+                    ? `${searchResults.albums.length} items`
+                    : viewAllCategory === 'Artists'
+                    ? `${searchResults.artists.length} items`
+                    : `${searchResults.videos.length} items`}
+                </p>
               </div>
 
               {/* Sort Icons */}
