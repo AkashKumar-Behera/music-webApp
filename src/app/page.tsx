@@ -379,9 +379,15 @@ export default function HomePage() {
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         ) : (
-          <>
+          <motion.div
+            key={`tab-${activeTab}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
             {/* ========================================================================= */}
             {/* 🏠 TAB 1: HOME / DISCOVER (BOLI Dynamic Engine - Screenshot 2 & 4)         */}
             {/* ========================================================================= */}
@@ -699,7 +705,7 @@ export default function HomePage() {
             {/* ⚙️ TAB 6: SETTINGS                                                        */}
             {/* ========================================================================= */}
             {activeTab === 'settings' && <SettingsView />}
-          </>
+          </motion.div>
         )}
         </AnimatePresence>
 
