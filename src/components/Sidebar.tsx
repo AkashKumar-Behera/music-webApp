@@ -39,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           currentTrack ? 'h-[calc(100vh-70px)]' : 'h-screen'
         }`}
       >
-        <div className="flex flex-col items-center space-y-6 sm:space-y-7 pt-14 sm:pt-16">
+        <div className="flex flex-col items-center space-y-8 sm:space-y-10 pt-20 sm:pt-24">
           {mainNavItems.map((item) => {
             const isActive = activeTab === item.id;
             return (

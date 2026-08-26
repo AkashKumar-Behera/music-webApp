@@ -36,6 +36,15 @@ import {
 
 const INITIAL_FALLBACK_TRACKS: Track[] = [
   {
+    id: 'u6lihZAcy4s',
+    title: 'Save Your Tears',
+    artist: 'The Weeknd',
+    album: 'After Hours',
+    duration: 215,
+    durationFormatted: '3:35',
+    thumbnail: 'https://i.ytimg.com/vi/u6lihZAcy4s/hqdefault.jpg',
+  },
+  {
     id: '34Na4j8AVgA',
     title: 'Starboy (feat. Daft Punk)',
     artist: 'The Weeknd',
@@ -45,6 +54,15 @@ const INITIAL_FALLBACK_TRACKS: Track[] = [
     thumbnail: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg',
   },
   {
+    id: 'mTLQhPFx2nM',
+    title: 'Die For You',
+    artist: 'The Weeknd',
+    album: 'Starboy',
+    duration: 260,
+    durationFormatted: '4:20',
+    thumbnail: 'https://i.ytimg.com/vi/mTLQhPFx2nM/hqdefault.jpg',
+  },
+  {
     id: '4NRXx6U8ABQ',
     title: 'Blinding Lights',
     artist: 'The Weeknd',
@@ -52,60 +70,6 @@ const INITIAL_FALLBACK_TRACKS: Track[] = [
     duration: 200,
     durationFormatted: '3:20',
     thumbnail: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg',
-  },
-  {
-    id: '5NV6Rdv1a3I',
-    title: 'Get Lucky (Radio Edit)',
-    artist: 'Daft Punk, Pharrell Williams',
-    album: 'Random Access Memories',
-    duration: 248,
-    durationFormatted: '4:08',
-    thumbnail: 'https://i.ytimg.com/vi/5NV6Rdv1a3I/hqdefault.jpg',
-  },
-  {
-    id: 'kTJczUoc268',
-    title: 'STAY',
-    artist: 'The Kid LAROI, Justin Bieber',
-    album: 'F*CK LOVE 3',
-    duration: 141,
-    durationFormatted: '2:21',
-    thumbnail: 'https://i.ytimg.com/vi/kTJczUoc268/hqdefault.jpg',
-  },
-  {
-    id: 'JGwWNGJdvx8',
-    title: 'Shape of You',
-    artist: 'Ed Sheeran',
-    album: '÷ (Divide)',
-    duration: 233,
-    durationFormatted: '3:53',
-    thumbnail: 'https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg',
-  },
-  {
-    id: '2Vv-BfVoq4g',
-    title: 'Sapphire',
-    artist: 'Ed Sheeran',
-    album: '= (Equals)',
-    duration: 198,
-    durationFormatted: '3:18',
-    thumbnail: 'https://i.ytimg.com/vi/2Vv-BfVoq4g/hqdefault.jpg',
-  },
-  {
-    id: 'nYh-n7EOtMA',
-    title: 'Cheap Thrills',
-    artist: 'Sia',
-    album: 'This Is Acting',
-    duration: 211,
-    durationFormatted: '3:31',
-    thumbnail: 'https://i.ytimg.com/vi/nYh-n7EOtMA/hqdefault.jpg',
-  },
-  {
-    id: 'H5v3kku4y6Q',
-    title: 'As It Was',
-    artist: 'Harry Styles',
-    album: "Harry's House",
-    duration: 167,
-    durationFormatted: '2:47',
-    thumbnail: 'https://i.ytimg.com/vi/H5v3kku4y6Q/hqdefault.jpg',
   },
   {
     id: 'qFLhGq0060w',
@@ -126,22 +90,58 @@ const INITIAL_FALLBACK_TRACKS: Track[] = [
     thumbnail: 'https://i.ytimg.com/vi/KEI4qSrkPAs/hqdefault.jpg',
   },
   {
-    id: 'XXYlFuWEuKi',
-    title: 'Save Your Tears',
+    id: 'yzTuBuRdAyA',
+    title: 'The Hills',
     artist: 'The Weeknd',
-    album: 'After Hours',
-    duration: 215,
-    durationFormatted: '3:35',
-    thumbnail: 'https://i.ytimg.com/vi/XXYlFuWEuKi/hqdefault.jpg',
+    album: 'Beauty Behind the Madness',
+    duration: 242,
+    durationFormatted: '4:02',
+    thumbnail: 'https://i.ytimg.com/vi/yzTuBuRdAyA/hqdefault.jpg',
   },
   {
-    id: 'nfs8NYg7yQM',
-    title: 'Attention',
-    artist: 'Charlie Puth',
-    album: 'Voicenotes',
-    duration: 208,
-    durationFormatted: '3:28',
-    thumbnail: 'https://i.ytimg.com/vi/nfs8NYg7yQM/hqdefault.jpg',
+    id: 'dqRZDebPIGs',
+    title: 'In Your Eyes',
+    artist: 'The Weeknd',
+    album: 'After Hours',
+    duration: 237,
+    durationFormatted: '3:57',
+    thumbnail: 'https://i.ytimg.com/vi/dqRZDebPIGs/hqdefault.jpg',
+  },
+  {
+    id: 'WxYgXmZ9xh8',
+    title: 'After Hours',
+    artist: 'The Weeknd',
+    album: 'After Hours',
+    duration: 361,
+    durationFormatted: '6:01',
+    thumbnail: 'https://i.ytimg.com/vi/WxYgXmZ9xh8/hqdefault.jpg',
+  },
+  {
+    id: 'M4ZoCHID9GI',
+    title: 'Call Out My Name',
+    artist: 'The Weeknd',
+    album: 'My Dear Melancholy,',
+    duration: 228,
+    durationFormatted: '3:48',
+    thumbnail: 'https://i.ytimg.com/vi/M4ZoCHID9GI/hqdefault.jpg',
+  },
+  {
+    id: 'waU75jdUnYw',
+    title: 'Earned It',
+    artist: 'The Weeknd',
+    album: 'Beauty Behind the Madness',
+    duration: 252,
+    durationFormatted: '4:12',
+    thumbnail: 'https://i.ytimg.com/vi/waU75jdUnYw/hqdefault.jpg',
+  },
+  {
+    id: 'QLCpqdqeoII',
+    title: 'Die For You (Remix)',
+    artist: 'The Weeknd, Ariana Grande',
+    album: 'Starboy (Deluxe)',
+    duration: 233,
+    durationFormatted: '3:53',
+    thumbnail: 'https://i.ytimg.com/vi/QLCpqdqeoII/hqdefault.jpg',
   },
 ];
 
@@ -155,58 +155,58 @@ const DEFAULT_ALBUMS = [
   },
   {
     id: 'alb_2',
+    title: 'After Hours',
+    artist: 'The Weeknd',
+    year: '2020',
+    thumbnail: 'https://i.ytimg.com/vi/u6lihZAcy4s/hqdefault.jpg',
+  },
+  {
+    id: 'alb_3',
+    title: 'Beauty Behind the Madness',
+    artist: 'The Weeknd',
+    year: '2015',
+    thumbnail: 'https://i.ytimg.com/vi/yzTuBuRdAyA/hqdefault.jpg',
+  },
+  {
+    id: 'alb_4',
+    title: 'Dawn FM',
+    artist: 'The Weeknd',
+    year: '2022',
+    thumbnail: 'https://i.ytimg.com/vi/qFLhGq0060w/hqdefault.jpg',
+  },
+  {
+    id: 'alb_5',
     title: 'The Highlights (Deluxe)',
     artist: 'The Weeknd',
     year: '2024',
     thumbnail: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg',
-  },
-  {
-    id: 'alb_3',
-    title: 'House of Balloons',
-    artist: 'The Weeknd',
-    year: '2011',
-    thumbnail: 'https://i.ytimg.com/vi/O1OTWC29Ans/hqdefault.jpg',
-  },
-  {
-    id: 'alb_4',
-    title: 'After Hours',
-    artist: 'The Weeknd',
-    year: '2020',
-    thumbnail: 'https://i.ytimg.com/vi/XXYlFuWEuKi/hqdefault.jpg',
-  },
-  {
-    id: 'alb_5',
-    title: 'Dawn FM',
-    artist: 'The Weeknd',
-    year: '2022',
-    thumbnail: 'https://i.ytimg.com/vi/u9n7Cw-4_PE/hqdefault.jpg',
   },
 ];
 
 const DEFAULT_PLAYLISTS = [
   {
     id: 'pl_1',
-    title: 'Rain Therapy 🍀🌧️',
+    title: 'The Weeknd Mixes',
     author: 'CloudBeatz Curated',
-    thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=60',
+    thumbnail: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg',
   },
   {
     id: 'pl_2',
-    title: 'Bollywood Hits',
-    author: 'Arijit Singh, Pritam',
-    thumbnail: 'https://i.ytimg.com/vi/2g5Hz1AsCBo/hqdefault.jpg',
+    title: 'The Weeknd Complete Collection',
+    author: 'The Weeknd',
+    thumbnail: 'https://i.ytimg.com/vi/u6lihZAcy4s/hqdefault.jpg',
   },
   {
     id: 'pl_3',
     title: 'Late Night Drive',
-    author: 'The Weeknd & Synthwave',
-    thumbnail: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg',
+    author: 'Synthwave & Chill',
+    thumbnail: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg',
   },
   {
     id: 'pl_4',
-    title: 'Global Pop Hits',
-    author: 'Billboard Hot 100',
-    thumbnail: 'https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg',
+    title: 'Starboy & After Hours Hits',
+    author: 'Top Hits',
+    thumbnail: 'https://i.ytimg.com/vi/qFLhGq0060w/hqdefault.jpg',
   },
 ];
 
@@ -333,8 +333,8 @@ export default function HomePage() {
   useEffect(() => {
     setOpenedPlaylist(null);
     if (activeTab === 'home') {
-      if (boliData.quickPicks.length === 0) {
-        fetchCategoryTracks('Top Indian & Global Hits 2026', 'song');
+      if (boliData.quickPicks.length === 0 && tracks.length === 0) {
+        setTracks(INITIAL_FALLBACK_TRACKS);
       }
     } else if (activeTab === 'songs') {
       fetchCategoryTracks(searchQuery || 'Top Trending Songs 2026', 'song');
@@ -511,7 +511,7 @@ export default function HomePage() {
             {/* 🏠 TAB 1: HOME / DISCOVER (BOLI Dynamic Engine - Screenshots 1, 2, 3, 4)   */}
             {/* ========================================================================= */}
             {activeTab === 'home' && (
-              <div className="p-4 sm:p-8 pt-8 sm:pt-10 space-y-8 animate-in fade-in duration-300 pb-24">
+              <div className="p-4 sm:p-8 pt-12 sm:pt-14 space-y-8 animate-in fade-in duration-300 pb-24">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-extrabold text-white tracking-tight">Discover</h2>
                 </div>
