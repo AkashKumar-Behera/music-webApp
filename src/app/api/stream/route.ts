@@ -20,6 +20,13 @@ export async function GET(req: NextRequest) {
     if (rawTitle) hintParams.set('title', rawTitle);
     if (rawArtist) hintParams.set('artist', rawArtist);
 
+    const userAgent = req.headers.get('user-agent') || '';
+    const isAppleDevice = /iPhone|iPad|iPod|Macintosh/i.test(userAgent);
+    if (isAppleDevice) {
+      hintParams.set('prefer', 'm4a');
+      hintParams.set('client', 'ios');
+    }
+
     // Direct 302 Redirect for instant audio playback
     const baseUrl = EXTRACTOR_SERVER_URL.endsWith('/stream')
       ? EXTRACTOR_SERVER_URL

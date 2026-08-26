@@ -91,11 +91,17 @@ export const FullScreenPlayer: React.FC = () => {
     setCurrentTime(dragTime);
     const audioElement = document.querySelector('audio');
     if (audioElement) {
-      audioElement.currentTime = dragTime;
+      const rawDur = audioElement.duration || 0;
+      const trackDur = currentTrack?.duration || 0;
+      let targetTime = dragTime;
+      if (trackDur > 0 && rawDur > trackDur * 1.6 && rawDur < trackDur * 2.4 && audioElement.currentTime > trackDur / 2) {
+        targetTime = dragTime * 2;
+      }
+      audioElement.currentTime = targetTime;
     }
   };
 
-  const totalDuration = duration || currentTrack.duration || 1;
+  const totalDuration = currentTrack ? (currentTrack.duration || duration || 1) : 1;
   const displayTime = isDragging ? dragTime : currentTime;
   const seekProgress = Math.min(100, Math.max(0, (displayTime / totalDuration) * 100));
 

@@ -290,12 +290,18 @@ export const PlayerBar: React.FC = () => {
     setIsDragging(false);
     setCurrentTime(dragTime);
     if (audioRef.current) {
-      audioRef.current.currentTime = dragTime;
+      const rawDur = audioRef.current.duration || 0;
+      const trackDur = currentTrack?.duration || 0;
+      let targetTime = dragTime;
+      if (trackDur > 0 && rawDur > trackDur * 1.6 && rawDur < trackDur * 2.4 && audioRef.current.currentTime > trackDur / 2) {
+        targetTime = dragTime * 2;
+      }
+      audioRef.current.currentTime = targetTime;
     }
   };
 
   const currentVolPercent = isMuted ? 0 : Math.round(volume * 100);
-  const totalDuration = currentTrack ? (duration || currentTrack.duration || 1) : 1;
+  const totalDuration = currentTrack ? (currentTrack.duration || duration || 1) : 1;
   const displayTime = isDragging ? dragTime : currentTime;
   const seekProgress = Math.min(100, Math.max(0, (displayTime / totalDuration) * 100));
 
@@ -310,27 +316,46 @@ export const PlayerBar: React.FC = () => {
         playsInline
         preload="auto"
         muted={isMuted}
+        onDurationChange={() => {
+          if (audioRef.current) {
+            const rawDur = audioRef.current.duration;
+            const trackDur = currentTrack?.duration || 0;
+            if (trackDur > 0) {
+              setDuration(trackDur);
+            } else if (rawDur && isFinite(rawDur) && rawDur > 0) {
+              setDuration(rawDur);
+            }
+          }
+        }}
         onTimeUpdate={() => {
           if (!isDragging && audioRef.current) {
-            const rawCurrent = audioRef.current.currentTime;
-            const knownDuration = (duration > 0 ? duration : currentTrack?.duration) || 0;
-            if (knownDuration > 0 && rawCurrent >= knownDuration - 0.5) {
+            let rawCurrent = audioRef.current.currentTime || 0;
+            const rawDur = audioRef.current.duration || 0;
+            const trackDur = currentTrack?.duration || (duration > 0 ? duration : 0);
+
+            // Fix iOS WebKit 2x duration & 2x currentTime bug:
+            // When iOS Safari decodes 48kHz Opus streams as 24kHz, WebKit doubles the duration & current time.
+            if (trackDur > 0 && rawDur > trackDur * 1.6 && rawDur < trackDur * 2.4) {
+              if (rawCurrent > trackDur) {
+                rawCurrent = rawCurrent / 2;
+              }
+            }
+
+            if (trackDur > 0 && rawCurrent >= trackDur - 0.5) {
               handleTrackEnded();
               return;
             }
-            setCurrentTime(rawCurrent);
+            setCurrentTime(Math.min(rawCurrent, trackDur > 0 ? trackDur : rawCurrent));
           }
         }}
         onLoadedMetadata={() => {
           if (audioRef.current) {
             const rawDur = audioRef.current.duration;
             const trackDur = currentTrack?.duration || 0;
-            if (trackDur > 0 && (!rawDur || !isFinite(rawDur) || rawDur > trackDur * 1.3)) {
+            if (trackDur > 0) {
               setDuration(trackDur);
             } else if (rawDur && isFinite(rawDur) && rawDur > 0) {
               setDuration(rawDur);
-            } else if (trackDur > 0) {
-              setDuration(trackDur);
             }
             audioRef.current.volume = isMuted ? 0 : Math.max(0, Math.min(1, volume));
             audioRef.current.muted = isMuted;
