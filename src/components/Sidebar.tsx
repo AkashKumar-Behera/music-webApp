@@ -134,19 +134,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             Settings
           </button>
         </div>
-
-        {/* Footer Info */}
-        <div className="mt-auto pt-4 border-t border-white/5 px-2">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/5">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200 mb-1">
-              <Sparkles className="w-3.5 h-3.5 text-rose-400" />
-              <span>BOLI Dynamic Engine</span>
-            </div>
-            <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Auto-adapts theme & home discovery to your currently playing song.
-            </p>
-          </div>
-        </div>
       </aside>
     </>
   );

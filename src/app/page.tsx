@@ -31,6 +31,7 @@ import {
   Download,
   Shuffle,
   Music,
+  MoreVertical,
 } from 'lucide-react';
 
 const INITIAL_FALLBACK_TRACKS: Track[] = [
@@ -278,8 +279,8 @@ export default function HomePage() {
         } overflow-y-auto relative transition-all duration-300`}
       >
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 py-3.5 bg-black/20 backdrop-blur-xl border-b border-white/5 gap-3">
-          <div className="hidden md:flex flex-1 max-w-xl">
+        <header className="sticky top-0 z-30 flex items-center justify-center px-4 sm:px-6 py-3.5 bg-black/20 backdrop-blur-xl border-b border-white/5">
+          <div className="hidden md:flex justify-center w-full max-w-2xl">
             <SearchBar onSearch={handleSearch} isLoading={isLoading} />
           </div>
 
@@ -297,53 +298,7 @@ export default function HomePage() {
                 ? 'Library Artists'
                 : 'Settings'}
             </h1>
-
-            {activeTab !== 'settings' && (
-              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5 flex-shrink-0">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    viewMode === 'grid' ? 'bg-white/20 text-white' : 'text-zinc-400 hover:text-white'
-                  }`}
-                  title="Grid View"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    viewMode === 'list' ? 'bg-white/20 text-white' : 'text-zinc-400 hover:text-white'
-                  }`}
-                  title="List View"
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
-            )}
           </div>
-
-          {activeTab !== 'settings' && (
-            <div className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5 flex-shrink-0">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  viewMode === 'grid' ? 'bg-white/20 text-white' : 'text-zinc-400 hover:text-white'
-                }`}
-                title="Grid View"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  viewMode === 'list' ? 'bg-white/20 text-white' : 'text-zinc-400 hover:text-white'
-                }`}
-                title="List View"
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
-          )}
         </header>
 
         <AnimatePresence mode="wait">
@@ -441,7 +396,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Section 1: 4-Row Horizontal Scrolling Grid (Screenshots 1-4 Exact Replica) */}
-                <div className="grid grid-rows-4 grid-flow-col auto-cols-[250px] sm:auto-cols-[280px] md:auto-cols-[300px] gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x">
+                <div className="grid grid-rows-4 grid-flow-col auto-cols-[260px] sm:auto-cols-[280px] md:auto-cols-[300px] gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x">
                   {(boliData.quickPicks.length > 0 ? boliData.quickPicks : tracks).map(
                     (track) => (
                       <div
@@ -452,25 +407,37 @@ export default function HomePage() {
                             boliData.quickPicks.length > 0 ? boliData.quickPicks : tracks
                           )
                         }
-                        className="flex items-center gap-3 p-2 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group select-none snap-start min-w-[250px]"
+                        className="flex items-center justify-between gap-3 p-2 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group select-none snap-start min-w-[260px]"
                       >
-                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-900 flex-shrink-0 relative shadow-md">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={track.thumbnail}
-                            alt={track.title}
-                            onError={(e) => {
-                              e.currentTarget.src = `https://i.ytimg.com/vi/${track.id}/hqdefault.jpg`;
-                            }}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          />
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-900 flex-shrink-0 relative shadow-md">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={track.thumbnail}
+                              alt={track.title}
+                              onError={(e) => {
+                                e.currentTarget.src = `https://i.ytimg.com/vi/${track.id}/hqdefault.jpg`;
+                              }}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-rose-400 transition-colors">
+                              {track.title}
+                            </h4>
+                            <p className="text-[11px] text-zinc-400 truncate mt-0.5">{track.artist}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-rose-400 transition-colors">
-                            {track.title}
-                          </h4>
-                          <p className="text-[11px] text-zinc-400 truncate mt-0.5">{track.artist}</p>
-                        </div>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                          className="p-1.5 text-zinc-500 hover:text-white rounded-lg hover:bg-white/10 opacity-70 group-hover:opacity-100 transition-opacity"
+                          title="Options"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
                       </div>
                     )
                   )}
@@ -789,7 +756,7 @@ export default function HomePage() {
         {/* Floating Search FAB Button on Mobile (Screenshots 1-4 Exact Replica) */}
         <button
           onClick={() => setIsSearchOpen(true)}
-          className="fixed bottom-20 right-4 z-30 w-12 h-12 rounded-2xl bg-[#3b2a37] text-white flex items-center justify-center shadow-2xl border border-white/10 active:scale-95 transition-all hover:bg-[#4b3546]"
+          className="fixed bottom-20 right-4 md:hidden z-30 w-12 h-12 rounded-2xl bg-[#3b2a37] text-white flex items-center justify-center shadow-2xl border border-white/10 active:scale-95 transition-all hover:bg-[#4b3546]"
           title="Search"
         >
           <Search className="w-5 h-5" />

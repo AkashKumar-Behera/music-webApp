@@ -16,8 +16,10 @@ import {
   Infinity as InfinityIcon,
   Mic2,
   ChevronDown,
+  ChevronUp,
   Heart,
   MoreVertical,
+  Volume2,
 } from 'lucide-react';
 
 export const FullScreenPlayer: React.FC = () => {
@@ -107,193 +109,201 @@ export const FullScreenPlayer: React.FC = () => {
             }
           }}
           style={{ backgroundColor: activeBg }}
-          className="fixed inset-0 z-50 flex flex-col justify-between p-5 sm:p-8 md:p-10 overflow-y-auto select-none touch-none"
+          className="fixed inset-0 z-50 flex flex-col justify-between p-4 sm:p-8 md:p-12 overflow-y-auto select-none touch-none"
         >
-          {/* Top Drag Indicator & Header Bar */}
-          <div className="w-full max-w-md mx-auto flex flex-col items-center">
-            {/* Native Pull Down Pill Handle */}
-            <div className="w-12 h-1.5 bg-white/30 rounded-full mb-3 cursor-grab active:cursor-grabbing hover:bg-white/50 transition-colors" />
+          {/* ========================================================================= */}
+          {/* TOP HEADER: Down Arrow (Minimize) & 3-Dot More Menu                       */}
+          {/* ========================================================================= */}
+          <div className="w-full flex items-center justify-between z-10">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setIsFullScreenPlayerOpen(false)}
+              className="p-2.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all"
+              title="Minimize"
+            >
+              <ChevronDown className="w-6 h-6 md:w-7 md:h-7" />
+            </motion.button>
 
-            <div className="flex items-center justify-between w-full">
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setIsFullScreenPlayerOpen(false)}
-                className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all"
-                title="Minimize"
-              >
-                <ChevronDown className="w-7 h-7" />
-              </motion.button>
+            {/* Mobile Drag Pill */}
+            <div className="md:hidden w-12 h-1.5 bg-white/20 rounded-full cursor-grab" />
 
-              <div className="text-center">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Now Playing</p>
-                <p className="text-xs text-zinc-300 font-medium truncate max-w-[200px]">
-                  {currentTrack.album || currentTrack.title}
-                </p>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleQueue}
+              className="p-2.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all"
+              title="More options / Queue"
+            >
+              <MoreVertical className="w-6 h-6" />
+            </motion.button>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* MAIN PLAYER BODY: Mobile Vertical vs Laptop / Desktop 2-Column Split      */}
+          {/* ========================================================================= */}
+          <div className="my-auto w-full max-w-5xl mx-auto py-6">
+            {/* Desktop 2-Column Grid / Mobile Flex */}
+            <div className="flex flex-col md:grid md:grid-cols-2 md:items-center md:gap-12 lg:gap-16 items-center">
+              
+              {/* Left Column: Big Album Artwork (Laptop & Mobile) */}
+              <div className="flex justify-center w-full">
+                <motion.div
+                  layoutId={`album-art-${currentTrack.id}`}
+                  className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-96 lg:h-96 rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl shadow-black/90 border border-white/10 flex-shrink-0 group"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={getHighResThumbnail(currentTrack.thumbnail, currentTrack.id)}
+                    alt={currentTrack.title}
+                    onError={(e) => {
+                      e.currentTarget.src = `https://i.ytimg.com/vi/${currentTrack.id}/hqdefault.jpg`;
+                    }}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                  />
+                </motion.div>
               </div>
 
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={toggleQueue}
-                className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all"
-                title="Queue"
-              >
-                <MoreVertical className="w-6 h-6" />
-              </motion.button>
-            </div>
-          </div>
+              {/* Right Column: Title, Artist, Heart, Slider & Controls (Laptop Exact Replica) */}
+              <div className="w-full max-w-md md:max-w-none flex flex-col justify-center space-y-6 md:space-y-8 mt-6 md:mt-0">
+                
+                {/* Song Info & Heart Icon */}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0 flex-1 text-left">
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight line-clamp-1">
+                      {currentTrack.title}
+                    </h2>
+                    <p className="text-sm sm:text-base text-zinc-400 font-medium mt-1 truncate">
+                      {currentTrack.artist}
+                    </p>
+                  </div>
 
-          {/* Center Section: Big Square Album Artwork */}
-          <div className="my-auto flex flex-col items-center justify-center w-full max-w-md mx-auto py-4">
-            <motion.div
-              layoutId={`album-art-${currentTrack.id}`}
-              className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 rounded-3xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 flex-shrink-0"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={getHighResThumbnail(currentTrack.thumbnail, currentTrack.id)}
-                alt={currentTrack.title}
-                className="w-full h-full object-cover"
-              />
-            </motion.div>
+                  <motion.button
+                    whileTap={{ scale: 0.85 }}
+                    onClick={() => toggleFavorite(currentTrack)}
+                    className="p-2 text-zinc-400 hover:text-white transition-colors flex-shrink-0"
+                    title={isLiked ? 'Remove from Favorites' : 'Add to Favorites'}
+                  >
+                    <Heart
+                      className={`w-6 h-6 md:w-7 md:h-7 ${
+                        isLiked ? 'text-rose-500 fill-rose-500' : ''
+                      }`}
+                    />
+                  </motion.button>
+                </div>
 
-            {/* Title & Artist */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="mt-8 text-center w-full px-2"
-            >
-              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight line-clamp-1">
-                {currentTrack.title}
-              </h2>
-              <p className="text-sm sm:text-base text-zinc-400 font-medium mt-1 truncate">
-                {currentTrack.artist}
-              </p>
-            </motion.div>
-          </div>
+                {/* Progress Slider & Timestamps */}
+                <div className="space-y-2">
+                  <div className="relative group w-full flex items-center py-2 cursor-pointer">
+                    <input
+                      type="range"
+                      min={0}
+                      max={totalDuration}
+                      step={0.1}
+                      value={displayTime}
+                      onChange={handleSeekChange}
+                      onMouseDown={() => setIsDragging(true)}
+                      onMouseUp={handleSeekCommit}
+                      className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
+                    />
+                    {/* Track Background */}
+                    <div className="relative w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+                      <div
+                        className="absolute left-0 top-0 bottom-0 bg-white rounded-full transition-all duration-75"
+                        style={{ width: `${seekProgress}%` }}
+                      />
+                    </div>
+                  </div>
 
-          {/* Bottom Section: Native Controls */}
-          <div className="w-full max-w-md mx-auto space-y-6 pb-4">
-            {/* Main Controls: Prev, Large Play Pill, Next */}
-            <div className="flex items-center justify-between gap-4">
-              <motion.button
-                whileTap={{ scale: 0.88 }}
-                onClick={prevTrack}
-                className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white flex items-center justify-center transition-colors"
-                title="Previous"
-              >
-                <SkipBack className="w-5 h-5 fill-current" />
-              </motion.button>
+                  <div className="flex justify-between items-center text-xs font-semibold text-zinc-400 px-0.5 font-mono">
+                    <span>{formatTime(displayTime)}</span>
+                    <span>{formatTime(totalDuration)}</span>
+                  </div>
+                </div>
 
-              {/* Large Pill Play/Pause Button */}
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={togglePlay}
-                disabled={isLoading}
-                style={{ backgroundColor: accentBtnBg }}
-                className="flex-1 py-4 px-8 rounded-2xl text-white font-bold flex items-center justify-center shadow-lg shadow-black/40 hover:brightness-110 transition-all"
-                title={isPlaying ? 'Pause' : 'Play'}
-              >
-                {isLoading ? (
-                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : isPlaying ? (
-                  <Pause className="w-7 h-7 fill-white" />
-                ) : (
-                  <Play className="w-7 h-7 fill-white translate-x-0.5" />
-                )}
-              </motion.button>
+                {/* Media Control Bar (Screenshot: Shuffle, Prev, Center Play Circle, Next, Repeat) */}
+                <div className="flex items-center justify-between md:justify-center md:gap-8 gap-4 pt-2">
+                  {/* Shuffle Button */}
+                  <motion.button
+                    whileTap={{ scale: 0.88 }}
+                    onClick={toggleShuffle}
+                    className={`p-3 rounded-full transition-colors ${
+                      isShuffled ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                    title={isShuffled ? 'Shuffle: On' : 'Shuffle: Off'}
+                  >
+                    <Shuffle className="w-5 h-5 md:w-6 md:h-6" />
+                  </motion.button>
 
-              <motion.button
-                whileTap={{ scale: 0.88 }}
-                onClick={nextTrack}
-                className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white flex items-center justify-center transition-colors"
-                title="Next"
-              >
-                <SkipForward className="w-5 h-5 fill-current" />
-              </motion.button>
-            </div>
+                  {/* Previous Button */}
+                  <motion.button
+                    whileTap={{ scale: 0.88 }}
+                    onClick={prevTrack}
+                    className="p-3 text-zinc-300 hover:text-white transition-colors"
+                    title="Previous"
+                  >
+                    <SkipBack className="w-6 h-6 md:w-7 md:h-7 fill-current" />
+                  </motion.button>
 
-            {/* Progress Slider with Timestamps */}
-            <div className="space-y-1.5">
-              <div className="relative group w-full flex items-center py-2 cursor-pointer">
-                <input
-                  type="range"
-                  min={0}
-                  max={totalDuration}
-                  step={0.1}
-                  value={displayTime}
-                  onChange={handleSeekChange}
-                  onMouseDown={() => setIsDragging(true)}
-                  onMouseUp={handleSeekCommit}
-                  className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
-                />
-                {/* Track Background */}
-                <div className="relative w-full h-1.5 bg-white/15 rounded-full overflow-hidden">
-                  <div
-                    className="absolute left-0 top-0 bottom-0 bg-white rounded-full transition-all duration-75"
-                    style={{ width: `${seekProgress}%` }}
-                  />
+                  {/* Large Circular Play/Pause Button (Screenshot Exact Dark Circle) */}
+                  <motion.button
+                    whileTap={{ scale: 0.93 }}
+                    onClick={togglePlay}
+                    disabled={isLoading}
+                    className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-black/40 hover:bg-black/60 border border-white/10 text-white flex items-center justify-center shadow-2xl transition-all"
+                    title={isPlaying ? 'Pause' : 'Play'}
+                  >
+                    {isLoading ? (
+                      <div className="w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : isPlaying ? (
+                      <Pause className="w-8 h-8 md:w-9 md:h-9 fill-white" />
+                    ) : (
+                      <Play className="w-8 h-8 md:w-9 md:h-9 fill-white ml-1" />
+                    )}
+                  </motion.button>
+
+                  {/* Next Button */}
+                  <motion.button
+                    whileTap={{ scale: 0.88 }}
+                    onClick={nextTrack}
+                    className="p-3 text-zinc-300 hover:text-white transition-colors"
+                    title="Next"
+                  >
+                    <SkipForward className="w-6 h-6 md:w-7 md:h-7 fill-current" />
+                  </motion.button>
+
+                  {/* Repeat / Loop Button */}
+                  <motion.button
+                    whileTap={{ scale: 0.88 }}
+                    onClick={toggleRepeat}
+                    className={`p-3 rounded-full transition-colors ${
+                      repeatMode !== 'off' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                    title={`Repeat: ${repeatMode}`}
+                  >
+                    {repeatMode === 'one' ? (
+                      <Repeat1 className="w-5 h-5 md:w-6 md:h-6" />
+                    ) : repeatMode === 'all' ? (
+                      <Repeat className="w-5 h-5 md:w-6 md:h-6" />
+                    ) : (
+                      <InfinityIcon className="w-5 h-5 md:w-6 md:h-6" />
+                    )}
+                  </motion.button>
                 </div>
               </div>
-
-              <div className="flex justify-between items-center text-xs font-semibold text-zinc-400 px-0.5 font-mono">
-                <span>{formatTime(displayTime)}</span>
-                <span>{formatTime(totalDuration)}</span>
-              </div>
             </div>
+          </div>
 
-            {/* Bottom Pill Tray */}
-            <div className="p-2 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-around backdrop-blur-md">
-              <motion.button
-                whileTap={{ scale: 0.85 }}
-                onClick={toggleRepeat}
-                title={`Repeat: ${repeatMode}`}
-                className={`p-2.5 rounded-xl transition-colors ${
-                  repeatMode !== 'off' ? 'text-white' : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                {repeatMode === 'one' ? (
-                  <Repeat1 className="w-5 h-5" />
-                ) : repeatMode === 'all' ? (
-                  <Repeat className="w-5 h-5" />
-                ) : (
-                  <InfinityIcon className="w-5 h-5" />
-                )}
-              </motion.button>
-
-              <motion.button
-                whileTap={{ scale: 0.85 }}
-                onClick={toggleShuffle}
-                title={isShuffled ? 'Shuffle: On' : 'Shuffle: Off'}
-                className={`p-2.5 rounded-xl transition-colors ${
-                  isShuffled ? 'text-white' : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <Shuffle className="w-5 h-5" />
-              </motion.button>
-
-              <motion.button
-                whileTap={{ scale: 0.85 }}
-                onClick={() => toggleFavorite(currentTrack)}
-                title={isLiked ? 'Remove from Favorites' : 'Add to Favorites'}
-                className={`p-2.5 rounded-xl transition-all ${
-                  isLiked ? 'text-rose-500 fill-rose-500' : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-              </motion.button>
-
-              <motion.button
-                whileTap={{ scale: 0.85 }}
-                onClick={toggleLyrics}
-                title="Lyrics"
-                className={`p-2.5 rounded-xl transition-colors ${
-                  isLyricsOpen ? 'text-white bg-white/10' : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <Mic2 className="w-5 h-5" />
-              </motion.button>
-            </div>
+          {/* ========================================================================= */}
+          {/* BOTTOM DRAWER TRIGGER: Up Arrow (Lyrics / Queue)                          */}
+          {/* ========================================================================= */}
+          <div className="w-full flex justify-center pb-2">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleLyrics}
+              className="p-2 rounded-full text-zinc-400 hover:text-white hover:bg-white/5 transition-all flex flex-col items-center gap-1"
+              title="Lyrics / Up Next"
+            >
+              <ChevronUp className="w-6 h-6 animate-bounce" />
+            </motion.button>
           </div>
         </motion.div>
       )}

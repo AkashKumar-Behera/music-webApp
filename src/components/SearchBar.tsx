@@ -131,8 +131,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, isLoading }) => 
             setSelectedIndex(-1);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Search songs, artists, albums, or paste YouTube link..."
-          className="w-full pl-12 pr-12 py-3 bg-zinc-900/90 hover:bg-zinc-900 text-white placeholder-zinc-400 text-sm rounded-2xl border border-white/10 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all shadow-inner"
+          placeholder="Songs, Playlist, Album or Artist"
+          className="w-full pl-12 pr-12 py-3 bg-[#34242f]/90 hover:bg-[#34242f] text-white placeholder-zinc-400 text-sm rounded-full border border-white/10 focus:border-white/30 focus:ring-1 focus:ring-white/20 focus:outline-none transition-all shadow-inner"
         />
 
         {query && (
