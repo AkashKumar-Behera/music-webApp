@@ -546,14 +546,14 @@ export default function HomePage() {
             {/* 📑 TAB 3: PLAYLISTS (Screenshot 1: "Library Playlists" - 4 Main Cards)      */}
             {/* ========================================================================= */}
             {activeTab === 'playlists' && (
-              <div className="p-4 sm:p-8 space-y-6 animate-in fade-in duration-300 pb-20">
+              <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-300 pb-20">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold text-white tracking-tight">Library Playlists</h2>
-                  <span className="text-xs text-zinc-400">4 items</span>
+                  <span className="text-xs text-zinc-400">4 smart categories &bull; {playlists.length} mixes</span>
                 </div>
 
-                {/* Screenshot 1: 4 Big Aesthetic Cards */}
-                <div className="grid grid-cols-2 gap-4 sm:gap-6">
+                {/* 4 Smart Library Cards: 2-cols on mobile, 4-cols on tablet/desktop */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                   {/* Card 1: Recently Played (History) */}
                   <div
                     onClick={() =>
@@ -563,13 +563,13 @@ export default function HomePage() {
                         tracks: history,
                       })
                     }
-                    className="aspect-square rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-6 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
+                    className="aspect-square sm:aspect-[4/3] md:aspect-auto md:py-8 rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-5 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
                   >
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-3 transition-colors">
-                      <Clock className="w-7 h-7 sm:w-8 sm:h-8" />
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-2.5 transition-colors">
+                      <Clock className="w-6 h-6 sm:w-7 sm:h-7" />
                     </div>
-                    <h3 className="text-sm sm:text-base font-bold text-white">Recently Played</h3>
-                    <p className="text-[11px] text-zinc-400 mt-1">{history.length} songs</p>
+                    <h3 className="text-sm font-bold text-white">Recently Played</h3>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">{history.length} songs</p>
                   </div>
 
                   {/* Card 2: Favorites */}
@@ -581,13 +581,13 @@ export default function HomePage() {
                         tracks: favorites,
                       })
                     }
-                    className="aspect-square rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-6 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
+                    className="aspect-square sm:aspect-[4/3] md:aspect-auto md:py-8 rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-5 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
                   >
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-rose-400 mb-3 transition-colors">
-                      <Heart className="w-7 h-7 sm:w-8 sm:h-8 fill-current" />
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-rose-400 mb-2.5 transition-colors">
+                      <Heart className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
                     </div>
-                    <h3 className="text-sm sm:text-base font-bold text-white">Favorites</h3>
-                    <p className="text-[11px] text-zinc-400 mt-1">{favorites.length} songs</p>
+                    <h3 className="text-sm font-bold text-white">Favorites</h3>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">{favorites.length} songs</p>
                   </div>
 
                   {/* Card 3: Cached / Offline */}
@@ -599,16 +599,16 @@ export default function HomePage() {
                         tracks: offlineTracks,
                       })
                     }
-                    className="aspect-square rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-6 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
+                    className="aspect-square sm:aspect-[4/3] md:aspect-auto md:py-8 rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-5 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
                   >
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-3 transition-colors">
-                      <Plane className="w-7 h-7 sm:w-8 sm:h-8" />
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-2.5 transition-colors">
+                      <Plane className="w-6 h-6 sm:w-7 sm:h-7" />
                     </div>
-                    <h3 className="text-sm sm:text-base font-bold text-white">Cached/Offline</h3>
-                    <p className="text-[11px] text-zinc-400 mt-1">{offlineTracks.length} songs</p>
+                    <h3 className="text-sm font-bold text-white">Cached/Offline</h3>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">{offlineTracks.length} songs</p>
                   </div>
 
-                  {/* Card 4: Curated / Downloads */}
+                  {/* Card 4: Curated / Hits */}
                   <div
                     onClick={() =>
                       setOpenedPlaylist({
@@ -617,13 +617,38 @@ export default function HomePage() {
                         tracks: tracks,
                       })
                     }
-                    className="aspect-square rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-6 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
+                    className="aspect-square sm:aspect-[4/3] md:aspect-auto md:py-8 rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-5 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
                   >
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-3 transition-colors">
-                      <Download className="w-7 h-7 sm:w-8 sm:h-8" />
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-2.5 transition-colors">
+                      <Download className="w-6 h-6 sm:w-7 sm:h-7" />
                     </div>
-                    <h3 className="text-sm sm:text-base font-bold text-white">Curated Hits</h3>
-                    <p className="text-[11px] text-zinc-400 mt-1">{tracks.length} songs</p>
+                    <h3 className="text-sm font-bold text-white">Curated Hits</h3>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">{tracks.length} songs</p>
+                  </div>
+                </div>
+
+                {/* Additional Curated Mood Playlists on Desktop */}
+                <div className="space-y-4 pt-4">
+                  <h3 className="text-lg font-bold text-white tracking-tight">Curated Mood Mixes</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+                    {playlists.map((pl) => (
+                      <div
+                        key={pl.id}
+                        onClick={() => handleArtistClick(pl.title)}
+                        className="group p-3.5 rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 transition-all cursor-pointer shadow-lg"
+                      >
+                        <div className="w-full aspect-square rounded-2xl overflow-hidden mb-3 bg-black/40 relative shadow-md">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={pl.thumbnail}
+                            alt={pl.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        </div>
+                        <h4 className="text-xs sm:text-sm font-bold text-white truncate">{pl.title}</h4>
+                        <p className="text-[11px] text-zinc-400 truncate mt-0.5">{pl.author} &bull; {pl.itemCount}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
