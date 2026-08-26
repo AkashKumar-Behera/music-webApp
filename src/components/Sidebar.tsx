@@ -39,14 +39,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           currentTrack ? 'h-[calc(100vh-70px)]' : 'h-screen'
         }`}
       >
-        <div className="flex flex-col items-center space-y-4 sm:space-y-5 pt-14 sm:pt-16">
+        <div className="flex flex-col items-center space-y-6 sm:space-y-7 pt-14 sm:pt-16">
           {mainNavItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`py-0.5 transition-all duration-200 cursor-pointer flex items-center justify-center ${
+                className={`py-1 transition-all duration-200 cursor-pointer flex items-center justify-center ${
                   isActive ? 'scale-105 font-bold text-white' : 'text-zinc-500 hover:text-zinc-300 font-medium'
                 }`}
                 style={{
