@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { usePlayerStore } from '@/store/usePlayerStore';
+import { downloadTrack } from '@/utils/downloadTrack';
 import {
   Play,
   Pause,
@@ -244,14 +245,11 @@ export const PlayerBar: React.FC = () => {
     }
   };
 
-  const handleDownload = () => {
-    if (!currentTrack) return;
-    const a = document.createElement('a');
-    a.href = `/api/stream?id=${currentTrack.id}&download=1&title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(currentTrack.artist)}`;
-    a.download = `${currentTrack.artist} - ${currentTrack.title}.mp3`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!currentTrack || isDownloading) return;
+    await downloadTrack(currentTrack, setIsDownloading);
   };
 
   const currentVolPercent = isMuted ? 0 : Math.round(volume * 100);
@@ -538,10 +536,19 @@ export const PlayerBar: React.FC = () => {
 
               <button
                 onClick={handleDownload}
-                title="Download MP3"
-                className="p-2 rounded-xl text-zinc-400 hover:text-emerald-400 hover:bg-white/5 transition-colors"
+                disabled={isDownloading}
+                title={isDownloading ? 'Downloading...' : 'Download MP3/M4A'}
+                className={`p-2 rounded-xl transition-colors ${
+                  isDownloading
+                    ? 'text-emerald-400 bg-emerald-500/10 cursor-wait'
+                    : 'text-zinc-400 hover:text-emerald-400 hover:bg-white/5'
+                }`}
               >
-                <Download className="w-4 h-4" />
+                {isDownloading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
               </button>
 
               {/* Volume slider */}

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { usePlayerStore } from '@/store/usePlayerStore';
+import { downloadTrack } from '@/utils/downloadTrack';
 import {
   Play,
   Pause,
@@ -75,14 +76,11 @@ export const FullScreenPlayer: React.FC = () => {
     }
   };
 
-  const handleDownload = () => {
-    if (!currentTrack) return;
-    const a = document.createElement('a');
-    a.href = `/api/stream?id=${currentTrack.id}&download=1&title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(currentTrack.artist)}`;
-    a.download = `${currentTrack.artist} - ${currentTrack.title}.mp3`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!currentTrack || isDownloading) return;
+    await downloadTrack(currentTrack, setIsDownloading);
   };
 
   const currentVolPercent = isMuted ? 0 : Math.round(volume * 100);
@@ -295,10 +293,24 @@ export const FullScreenPlayer: React.FC = () => {
 
               <button
                 onClick={handleDownload}
-                className="p-2.5 rounded-xl text-xs font-semibold bg-white/5 text-zinc-300 hover:text-emerald-400 hover:bg-white/10 transition-all flex items-center gap-2"
+                disabled={isDownloading}
+                className={`p-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${
+                  isDownloading
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-wait'
+                    : 'bg-white/5 text-zinc-300 hover:text-emerald-400 hover:bg-white/10'
+                }`}
               >
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Download</span>
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                    <span className="hidden sm:inline">Downloading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span className="hidden sm:inline">Download</span>
+                  </>
+                )}
               </button>
             </div>
 
