@@ -11,12 +11,16 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+import { usePlayerStore } from '@/store/usePlayerStore';
+
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+  const { currentTrack } = usePlayerStore();
+
   const mainNavItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'songs', label: 'Songs', icon: Music2 },
@@ -30,7 +34,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       {/* ========================================================================= */}
       {/* 📱 MOBILE VERTICAL ROTATED RAIL (Screenshot 1, 2, 4 Exact Replica)         */}
       {/* ========================================================================= */}
-      <nav className="flex md:hidden flex-col justify-between items-center w-12 sm:w-14 py-6 border-r border-white/5 select-none z-30 flex-shrink-0 bg-black/20">
+      <nav
+        className={`flex md:hidden flex-col justify-between items-center w-12 sm:w-14 py-6 border-r border-white/5 select-none z-30 flex-shrink-0 bg-black/20 ${
+          currentTrack ? 'h-[calc(100vh-70px)]' : 'h-screen'
+        }`}
+      >
         <div className="flex flex-col items-center space-y-9 pt-4">
           {mainNavItems.map((item) => {
             const isActive = activeTab === item.id;
@@ -71,7 +79,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       {/* ========================================================================= */}
       {/* 💻 DESKTOP SIDEBAR (Visible on screens >= 768px)                          */}
       {/* ========================================================================= */}
-      <aside className="w-64 hidden md:flex flex-col h-[calc(100vh-88px)] glass border-r border-white/10 p-5 select-none">
+      <aside
+        className={`w-64 hidden md:flex flex-col ${
+          currentTrack ? 'h-[calc(100vh-88px)]' : 'h-screen'
+        } glass border-r border-white/10 p-5 select-none transition-all duration-300`}
+      >
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-2 mb-8">
           <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-emerald-500/20 border border-white/10 flex-shrink-0 bg-zinc-900">

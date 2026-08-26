@@ -269,7 +269,11 @@ export default function HomePage() {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Scrollable Canvas */}
-      <main className="flex-1 flex flex-col h-[calc(100vh-80px)] md:h-[calc(100vh-88px)] overflow-y-auto relative">
+      <main
+        className={`flex-1 flex flex-col ${
+          currentTrack ? 'h-[calc(100vh-70px)] md:h-[calc(100vh-88px)]' : 'h-screen'
+        } overflow-y-auto relative transition-all duration-300`}
+      >
         {/* Top Header Bar */}
         <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 py-3.5 bg-black/20 backdrop-blur-xl border-b border-white/5 gap-3">
           <SearchBar onSearch={handleSearch} isLoading={isLoading} />
