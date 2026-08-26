@@ -211,25 +211,12 @@ export const PlayerBar: React.FC = () => {
       }
     }
 
-    navigator.mediaSession.setActionHandler('play', async () => {
+    navigator.mediaSession.setActionHandler('play', () => {
       setIsPlaying(true);
       if (audioRef.current) {
-        // If stream dropped or timed out while paused in background on iOS
-        if (audioRef.current.readyState < 2 || audioRef.current.error || audioRef.current.networkState === 3) {
-          const currentPos = audioRef.current.currentTime;
-          audioRef.current.load();
-          audioRef.current.currentTime = currentPos;
-        }
-        try {
-          await audioRef.current.play();
-        } catch {
-          try {
-            audioRef.current.load();
-            await audioRef.current.play();
-          } catch (e) {
-            console.warn('Audio resume error:', e);
-          }
-        }
+        audioRef.current.play().catch((err) => {
+          console.warn('Lockscreen play resume error:', err);
+        });
       }
     });
 
@@ -421,8 +408,9 @@ export const PlayerBar: React.FC = () => {
               }
             }
 
-            // Spotify-style Smart Pre-fetch: when within 15 seconds of track completion, pre-download next song
-            if (trackDur > 0 && trackDur - rawCurrent <= 15 && queue.length > 0) {
+            // Spotify-style Smart Pre-fetch: when within 20 seconds of track completion, silently cache next song in IndexedDB
+            const effectiveDur = trackDur > 0 ? trackDur : rawDur;
+            if (effectiveDur > 20 && effectiveDur - rawCurrent <= 20 && queue.length > 0) {
               const nextSong = queue[0];
               if (nextSong && prefetchTriggeredRef.current !== nextSong.id) {
                 prefetchTriggeredRef.current = nextSong.id;
@@ -430,11 +418,7 @@ export const PlayerBar: React.FC = () => {
               }
             }
 
-            if (trackDur > 0 && rawCurrent >= trackDur - 0.5) {
-              handleTrackEnded();
-              return;
-            }
-            setCurrentTime(Math.min(rawCurrent, trackDur > 0 ? trackDur : rawCurrent));
+            setCurrentTime(trackDur > 0 ? Math.min(rawCurrent, trackDur) : rawCurrent);
           }
         }}
         onLoadedMetadata={() => {
