@@ -174,7 +174,7 @@ export const PlayerBar: React.FC = () => {
     }
   }, [volume, isMuted]);
 
-  // MediaSession API for Native Lock Screen Controls
+  // MediaSession API for Native Lock Screen & Notification Controls (iOS Lock Screen / Android Notification)
   useEffect(() => {
     if (!currentTrack || typeof window === 'undefined' || !('mediaSession' in navigator)) return;
 
@@ -193,11 +193,41 @@ export const PlayerBar: React.FC = () => {
 
     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
 
+    const trackDur = parseDuration(currentTrack.duration, currentTrack.durationFormatted).seconds;
+    if ('setPositionState' in navigator.mediaSession && trackDur > 0) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: trackDur,
+          playbackRate: audioRef.current?.playbackRate || 1,
+          position: Math.min(currentTime, trackDur),
+        });
+      } catch {
+        // Ignore unsupported position state errors
+      }
+    }
+
     navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
     navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
     navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
     navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
-  }, [currentTrack, isPlaying, nextTrack, prevTrack, setIsPlaying]);
+
+    try {
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        if (details.seekTime !== undefined && audioRef.current) {
+          const tDur = parseDuration(currentTrack.duration, currentTrack.durationFormatted).seconds;
+          let targetTime = details.seekTime;
+          const rawDur = audioRef.current.duration || 0;
+          if (tDur > 0 && rawDur > tDur * 1.6 && rawDur < tDur * 2.4 && audioRef.current.currentTime > tDur / 2) {
+            targetTime = targetTime * 2;
+          }
+          audioRef.current.currentTime = targetTime;
+          setCurrentTime(details.seekTime);
+        }
+      });
+    } catch {
+      // seekto not supported in some browsers
+    }
+  }, [currentTrack, isPlaying, nextTrack, prevTrack, setIsPlaying, currentTime, setCurrentTime]);
 
   // Keyboard Shortcuts (Space, Arrow Keys)
   useEffect(() => {
