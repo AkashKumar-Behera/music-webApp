@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Download, X } from 'lucide-react';
+import { useThemeStore } from '@/lib/themeStore';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -12,6 +13,27 @@ export const PWAProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const { backgroundColor, themeMode } = useThemeStore();
+
+  // Active theme synchronization with root document & status bar
+  useEffect(() => {
+    const bg =
+      themeMode === 'dark'
+        ? '#09090b'
+        : themeMode === 'light'
+        ? '#261622'
+        : backgroundColor || '#160913';
+
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.backgroundColor = bg;
+      document.body.style.backgroundColor = bg;
+
+      const metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) {
+        metaTheme.setAttribute('content', bg);
+      }
+    }
+  }, [backgroundColor, themeMode]);
 
   useEffect(() => {
     // 1. Check if already installed / running in standalone PWA mode

@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  metadataBase: new URL('https://music.croto.in'),
+  alternates: {
+    canonical: 'https://music.croto.in',
+  },
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
@@ -27,7 +31,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#140a17',
+  themeColor: '#160913',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -42,11 +46,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
+        <link rel="canonical" href="https://music.croto.in" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="CloudBeatz" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="theme-color" content="#140a17" />
+        <meta name="theme-color" content="#160913" />
       </head>
       <body className="bg-[#09090b] text-zinc-100 min-h-screen selection:bg-emerald-500 selection:text-black antialiased">
         <PWAProvider>

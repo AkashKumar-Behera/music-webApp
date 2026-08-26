@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cloudbeatz-v1';
+const CACHE_NAME = 'cloudbeatz-music-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

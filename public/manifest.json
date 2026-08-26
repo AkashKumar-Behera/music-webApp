@@ -1,14 +1,14 @@
 {
-  "name": "CloudBeatz - Free Music Streamer",
+  "name": "CloudBeatz - Free Music",
   "short_name": "CloudBeatz",
   "description": "Stream unlimited music with synchronized lyrics, zero ads, and smart recommendations powered by YouTube Music.",
-  "start_url": "/",
-  "id": "/",
+  "start_url": "/?pwa=music",
+  "id": "cloudbeatz-music-pwa-app",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#09090b",
-  "theme_color": "#10b981",
+  "theme_color": "#160913",
   "categories": ["music", "entertainment", "audio"],
   "icons": [
     {

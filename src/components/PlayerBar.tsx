@@ -211,10 +211,25 @@ export const PlayerBar: React.FC = () => {
       }
     }
 
-    navigator.mediaSession.setActionHandler('play', () => {
+    navigator.mediaSession.setActionHandler('play', async () => {
       setIsPlaying(true);
       if (audioRef.current) {
-        audioRef.current.play().catch(() => {});
+        // If stream dropped or timed out while paused in background on iOS
+        if (audioRef.current.readyState < 2 || audioRef.current.error || audioRef.current.networkState === 3) {
+          const currentPos = audioRef.current.currentTime;
+          audioRef.current.load();
+          audioRef.current.currentTime = currentPos;
+        }
+        try {
+          await audioRef.current.play();
+        } catch {
+          try {
+            audioRef.current.load();
+            await audioRef.current.play();
+          } catch (e) {
+            console.warn('Audio resume error:', e);
+          }
+        }
       }
     });
 

@@ -16,6 +16,9 @@ interface ThemeState {
 function updateMetaThemeColor(color: string) {
   if (typeof document === 'undefined') return;
   try {
+    document.documentElement.style.backgroundColor = color;
+    document.body.style.backgroundColor = color;
+
     let metaTheme = document.querySelector('meta[name="theme-color"]');
     if (!metaTheme) {
       metaTheme = document.createElement('meta');
