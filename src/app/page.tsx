@@ -278,26 +278,10 @@ export default function HomePage() {
           currentTrack ? 'h-[calc(100vh-70px)] md:h-[calc(100vh-88px)]' : 'h-screen'
         } overflow-y-auto relative transition-all duration-300`}
       >
-        {/* Top Header Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-center px-4 sm:px-6 py-3.5 bg-black/20 backdrop-blur-xl border-b border-white/5">
-          <div className="hidden md:flex justify-center w-full max-w-2xl">
+        {/* Top Header Bar (Desktop Only) */}
+        <header className="sticky top-0 z-30 hidden md:flex items-center justify-center px-4 sm:px-6 py-3.5 bg-black/20 backdrop-blur-xl border-b border-white/5">
+          <div className="flex justify-center w-full max-w-2xl">
             <SearchBar onSearch={handleSearch} isLoading={isLoading} />
-          </div>
-
-          <div className="md:hidden flex items-center justify-between w-full">
-            <h1 className="text-xl font-extrabold tracking-tight text-white capitalize">
-              {activeTab === 'home'
-                ? 'Discover'
-                : activeTab === 'songs'
-                ? 'Library Songs'
-                : activeTab === 'playlists'
-                ? 'Library Playlists'
-                : activeTab === 'albums'
-                ? 'Library Albums'
-                : activeTab === 'artists'
-                ? 'Library Artists'
-                : 'Settings'}
-            </h1>
           </div>
         </header>
 

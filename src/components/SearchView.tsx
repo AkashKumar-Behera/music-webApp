@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Track } from '@/lib/types';
 import { usePlayerStore } from '@/store/usePlayerStore';
+import { useThemeStore } from '@/lib/themeStore';
 import {
   ChevronLeft,
   Search as SearchIcon,
@@ -32,6 +33,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   onSelectArtistOrAlbum,
 }) => {
   const { playTrack } = usePlayerStore();
+  const { backgroundColor, dominantColor, themeMode } = useThemeStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
@@ -58,6 +60,16 @@ export const SearchView: React.FC<SearchViewProps> = ({
   });
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Dynamic Theme Background Color matching the current playing song
+  const activeBg =
+    themeMode === 'dark'
+      ? '#09090b'
+      : themeMode === 'light'
+      ? '#261622'
+      : themeMode === 'dynamic'
+      ? backgroundColor || '#160913'
+      : '#09090b';
 
   // Load Search History from LocalStorage
   useEffect(() => {
@@ -172,7 +184,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: '100%' }}
       transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-      className="fixed inset-0 z-40 bg-[#0d1b1e] text-white flex flex-col overflow-hidden select-none"
+      style={{ backgroundColor: activeBg }}
+      className="fixed inset-0 z-40 text-white flex flex-col overflow-hidden select-none transition-colors duration-500"
     >
       {/* ========================================================================= */}
       {/* 🔍 SCREEN 1: SEARCH INPUT & RECENT HISTORY (Screenshot 5)                  */}
@@ -254,27 +267,28 @@ export const SearchView: React.FC<SearchViewProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 📑 SCREEN 2: SEARCH RESULTS WITH VERTICAL SUB-RAIL (Screenshots 6, 7, 8, 9)*/}
+      {/* 📑 SCREEN 2: SEARCH RESULTS WITH LEFT SUB-RAIL (Screenshots 6, 7, 8, 9)   */}
       {/* ========================================================================= */}
       {submittedQuery && !viewAllCategory && (
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Vertical Sub-Rail (Screenshots 6-9: Results, Community Playlists, Songs, etc.) */}
-          <div className="w-12 sm:w-16 md:w-20 bg-black/20 border-r border-white/5 flex flex-col justify-start items-center py-6 select-none flex-shrink-0 overflow-y-auto scrollbar-none">
-            <div className="flex flex-col gap-6 items-center">
+          {/* Left Vertical Sub-Rail (With fixed height slots to completely prevent text overlap) */}
+          <div className="w-14 sm:w-16 bg-black/25 border-r border-white/5 flex flex-col justify-start items-center py-4 select-none flex-shrink-0 overflow-y-auto scrollbar-none">
+            <div className="flex flex-col gap-10 items-center w-full">
               {subTabs.map((tab) => {
                 const isActive = activeSubTab === tab;
                 return (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveSubTab(tab)}
-                    className={`py-3 text-[11px] sm:text-xs font-bold tracking-wider uppercase transition-all transform -rotate-90 whitespace-nowrap ${
-                      isActive
-                        ? 'text-white border-b-2 border-white'
-                        : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
-                  >
-                    {tab}
-                  </button>
+                  <div key={tab} className="h-16 flex items-center justify-center w-full">
+                    <button
+                      onClick={() => setActiveSubTab(tab)}
+                      className={`transform -rotate-90 origin-center text-[10px] font-bold tracking-wider uppercase whitespace-nowrap transition-all ${
+                        isActive
+                          ? 'text-white border-b-2 border-white pb-0.5'
+                          : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -514,30 +528,31 @@ export const SearchView: React.FC<SearchViewProps> = ({
       {/* ========================================================================= */}
       {submittedQuery && viewAllCategory && (
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Vertical Sub-Rail */}
-          <div className="w-12 sm:w-16 md:w-20 bg-black/20 border-r border-white/5 flex flex-col justify-start items-center py-6 select-none flex-shrink-0 overflow-y-auto scrollbar-none">
-            <div className="flex flex-col gap-6 items-center">
+          {/* Left Vertical Sub-Rail with fixed slot heights */}
+          <div className="w-14 sm:w-16 bg-black/25 border-r border-white/5 flex flex-col justify-start items-center py-4 select-none flex-shrink-0 overflow-y-auto scrollbar-none">
+            <div className="flex flex-col gap-10 items-center w-full">
               {subTabs.map((tab) => {
                 const isActive = viewAllCategory === tab;
                 return (
-                  <button
-                    key={tab}
-                    onClick={() => {
-                      if (tab === 'Results') {
-                        setViewAllCategory(null);
-                        setActiveSubTab('Results');
-                      } else {
-                        setViewAllCategory(tab);
-                      }
-                    }}
-                    className={`py-3 text-[11px] sm:text-xs font-bold tracking-wider uppercase transition-all transform -rotate-90 whitespace-nowrap ${
-                      isActive
-                        ? 'text-white border-b-2 border-white'
-                        : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
-                  >
-                    {tab}
-                  </button>
+                  <div key={tab} className="h-16 flex items-center justify-center w-full">
+                    <button
+                      onClick={() => {
+                        if (tab === 'Results') {
+                          setViewAllCategory(null);
+                          setActiveSubTab('Results');
+                        } else {
+                          setViewAllCategory(tab);
+                        }
+                      }}
+                      className={`transform -rotate-90 origin-center text-[10px] font-bold tracking-wider uppercase whitespace-nowrap transition-all ${
+                        isActive
+                          ? 'text-white border-b-2 border-white pb-0.5'
+                          : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  </div>
                 );
               })}
             </div>
