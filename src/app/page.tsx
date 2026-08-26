@@ -7,7 +7,9 @@ import { TrackCard } from '@/components/TrackCard';
 import { SettingsView } from '@/components/SettingsView';
 import { Track } from '@/lib/types';
 import { usePlayerStore } from '@/store/usePlayerStore';
+import { useThemeStore } from '@/lib/themeStore';
 import { CacheService } from '@/lib/cache';
+import { OfflineStore } from '@/lib/offlineStore';
 import {
   Sparkles,
   LayoutGrid,
@@ -19,8 +21,14 @@ import {
   Play,
   Loader2,
   Flame,
-  Radio,
+  Search,
+  ChevronLeft,
   Clock,
+  Heart,
+  Plane,
+  Download,
+  Shuffle,
+  Music,
 } from 'lucide-react';
 
 const INITIAL_FALLBACK_TRACKS: Track[] = [
@@ -60,36 +68,36 @@ const INITIAL_FALLBACK_TRACKS: Track[] = [
     durationFormatted: '4:23',
     thumbnail: 'https://i.ytimg.com/vi/50VNCymT-Cs/hqdefault.jpg',
   },
-  {
-    id: 'hhuHLz5p-hI',
-    title: 'Softly - Karan Aujla',
-    artist: 'Karan Aujla, Ikky',
-    album: 'Making Memories',
-    duration: 156,
-    durationFormatted: '2:36',
-    thumbnail: 'https://i.ytimg.com/vi/cWMxCE2HTag/hqdefault.jpg',
-  },
 ];
 
 const FEATURED_ARTISTS = [
+  { name: 'The Weeknd', query: 'The Weeknd songs', image: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg' },
   { name: 'Arijit Singh', query: 'Arijit Singh songs', image: 'https://i.ytimg.com/vi/2g5Hz1AsCBo/hqdefault.jpg' },
   { name: 'Karan Aujla', query: 'Karan Aujla songs', image: 'https://i.ytimg.com/vi/cWMxCE2HTag/hqdefault.jpg' },
   { name: 'Diljit Dosanjh', query: 'Diljit Dosanjh hits', image: 'https://i.ytimg.com/vi/cl0a3i2wFcc/hqdefault.jpg' },
-  { name: 'The Weeknd', query: 'The Weeknd songs', image: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg' },
-  { name: 'Shreya Ghoshal', query: 'Shreya Ghoshal hits', image: 'https://i.ytimg.com/vi/aLkd70P6QW4/hqdefault.jpg' },
   { name: 'Jay Sean', query: 'Jay Sean songs', image: 'https://i.ytimg.com/vi/foEUtbLVBgw/hqdefault.jpg' },
-  { name: 'Taylor Swift', query: 'Taylor Swift hits', image: 'https://i.ytimg.com/vi/e-ORhEE9VVg/hqdefault.jpg' },
-  { name: 'Sidhu Moose Wala', query: 'Sidhu Moose Wala best', image: 'https://i.ytimg.com/vi/pXPHSAUPiug/hqdefault.jpg' },
+  { name: 'Shreya Ghoshal', query: 'Shreya Ghoshal hits', image: 'https://i.ytimg.com/vi/aLkd70P6QW4/hqdefault.jpg' },
 ];
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Active custom playlist view (e.g. History, Favorites, Offline)
+  const [openedPlaylist, setOpenedPlaylist] = useState<{
+    id: string;
+    title: string;
+    description?: string;
+    icon?: any;
+    tracks: Track[];
+  } | null>(null);
+
   // Tab Data States
   const [tracks, setTracks] = useState<Track[]>(INITIAL_FALLBACK_TRACKS);
+  const [offlineTracks, setOfflineTracks] = useState<Track[]>([]);
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [albums, setAlbums] = useState<any[]>([]);
 
@@ -108,7 +116,8 @@ export default function HomePage() {
     relatedPlaylists: [],
   });
 
-  const { currentTrack, history, playTrack } = usePlayerStore();
+  const { currentTrack, history, favorites, playTrack, toggleFavorite, isFavorite } = usePlayerStore();
+  const { backgroundColor, themeMode } = useThemeStore();
 
   // 1. Fetch BOLI Data for a song with smart caching
   const loadBoliContent = useCallback(async (song: Track) => {
@@ -127,7 +136,7 @@ export default function HomePage() {
       if (res.ok) {
         const data = await res.json();
         setBoliData(data);
-        CacheService.set(cacheKey, data, 120); // 2 hours TTL
+        CacheService.set(cacheKey, data, 120);
       }
     } catch (err) {
       console.error('BOLI fetch error:', err);
@@ -142,7 +151,17 @@ export default function HomePage() {
     }
   }, [currentTrack, history, loadBoliContent]);
 
-  // 3. General Track / Search Fetcher with Caching
+  // 3. Load Offline Tracks
+  const loadOfflineData = async () => {
+    const offTracks = await OfflineStore.getAllTracks();
+    setOfflineTracks(offTracks);
+  };
+
+  useEffect(() => {
+    loadOfflineData();
+  }, [currentTrack]);
+
+  // 4. General Search & Category Fetcher
   const fetchCategoryTracks = async (query: string, type: 'song' | 'playlist' | 'album' = 'song') => {
     const cacheKey = `search_${type}_${query}`;
     const cached = CacheService.get(cacheKey);
@@ -169,8 +188,9 @@ export default function HomePage() {
     }
   };
 
-  // 4. Tab switching logic
+  // 5. Tab Switching
   useEffect(() => {
+    setOpenedPlaylist(null);
     if (activeTab === 'home') {
       if (boliData.quickPicks.length === 0) {
         fetchCategoryTracks('Top Indian & Global Hits 2026', 'song');
@@ -191,12 +211,10 @@ export default function HomePage() {
       return;
     }
     const samplePlaylists = [
-      { id: 'RDCLAK5uy_kmPRjHDECIcuVwnKsx2NgGkvKgxRrjQ4U', title: 'Today’s Biggest Hits', author: 'YouTube Music', itemCount: '50 Songs', thumbnail: 'https://i.ytimg.com/vi/2g5Hz1AsCBo/hqdefault.jpg' },
-      { id: 'RDCLAK5uy_n9Fbdw7e6ap-9OrrwAOTUs3_7Pp5x-tc8', title: 'Bollywood Romantic Melodies', author: 'CloudBeatz Curated', itemCount: '40 Songs', thumbnail: 'https://i.ytimg.com/vi/foEUtbLVBgw/hqdefault.jpg' },
-      { id: 'RDCLAK5uy_lBN6M6y05lD4W4-Dcx0f1s_BfPZ-4bN1g', title: 'Punjabi Hotlist 2026', author: 'Hits Radio', itemCount: '35 Songs', thumbnail: 'https://i.ytimg.com/vi/cWMxCE2HTag/hqdefault.jpg' },
-      { id: 'RDCLAK5uy_kfdijf38dklf_LDFJkfdjs345', title: 'Lo-Fi Chill & Focus', author: 'CloudBeatz Vibes', itemCount: '60 Songs', thumbnail: 'https://i.ytimg.com/vi/50VNCymT-Cs/hqdefault.jpg' },
-      { id: 'RDCLAK5uy_global_pop_superstars', title: 'Global Pop Superstars', author: 'Top Hits', itemCount: '45 Songs', thumbnail: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg' },
-      { id: 'RDCLAK5uy_gym_workout_beast_mode', title: 'Workout & Gym Energy', author: 'Power Mix', itemCount: '30 Songs', thumbnail: 'https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg' },
+      { id: 'rain_therapy', title: 'Rain Therapy 🍀🌧️', author: 'CloudBeatz Vibe', itemCount: '50 Songs', thumbnail: 'https://i.ytimg.com/vi/2g5Hz1AsCBo/hqdefault.jpg' },
+      { id: 'romance_now', title: 'Romance Right Now', author: 'Bollywood Love', itemCount: '40 Songs', thumbnail: 'https://i.ytimg.com/vi/foEUtbLVBgw/hqdefault.jpg' },
+      { id: 'punjabi_hotlist', title: 'Punjabi Hotlist 2026', author: 'Hits Radio', itemCount: '35 Songs', thumbnail: 'https://i.ytimg.com/vi/cWMxCE2HTag/hqdefault.jpg' },
+      { id: 'lofi_chill', title: 'Lo-Fi Chill & Focus', author: 'CloudBeatz', itemCount: '60 Songs', thumbnail: 'https://i.ytimg.com/vi/50VNCymT-Cs/hqdefault.jpg' },
     ];
     setPlaylists(samplePlaylists);
     CacheService.set('static_playlists', samplePlaylists, 180);
@@ -209,12 +227,11 @@ export default function HomePage() {
       return;
     }
     const sampleAlbums = [
-      { id: 'MPREb_Brahmastra', title: 'Brahmāstra (Original Motion Picture)', artist: 'Pritam, Arijit Singh', year: '2022', thumbnail: 'https://i.ytimg.com/vi/2g5Hz1AsCBo/hqdefault.jpg' },
-      { id: 'MPREb_MakingMemories', title: 'Making Memories', artist: 'Karan Aujla, Ikky', year: '2023', thumbnail: 'https://i.ytimg.com/vi/cWMxCE2HTag/hqdefault.jpg' },
       { id: 'MPREb_Starboy', title: 'Starboy', artist: 'The Weeknd', year: '2016', thumbnail: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg' },
-      { id: 'MPREb_Ghost', title: 'Ghost (Deluxe Edition)', artist: 'Diljit Dosanjh', year: '2023', thumbnail: 'https://i.ytimg.com/vi/cl0a3i2wFcc/hqdefault.jpg' },
+      { id: 'MPREb_MakingMemories', title: 'Making Memories', artist: 'Karan Aujla, Ikky', year: '2023', thumbnail: 'https://i.ytimg.com/vi/cWMxCE2HTag/hqdefault.jpg' },
+      { id: 'MPREb_Brahmastra', title: 'Brahmāstra', artist: 'Pritam, Arijit Singh', year: '2022', thumbnail: 'https://i.ytimg.com/vi/2g5Hz1AsCBo/hqdefault.jpg' },
+      { id: 'MPREb_Ghost', title: 'Ghost', artist: 'Diljit Dosanjh', year: '2023', thumbnail: 'https://i.ytimg.com/vi/cl0a3i2wFcc/hqdefault.jpg' },
       { id: 'MPREb_AllOrNothing', title: 'All or Nothing', artist: 'Jay Sean', year: '2009', thumbnail: 'https://i.ytimg.com/vi/foEUtbLVBgw/hqdefault.jpg' },
-      { id: 'MPREb_Vida', title: 'VIDA', artist: 'Luis Fonsi', year: '2019', thumbnail: 'https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg' },
     ];
     setAlbums(sampleAlbums);
     CacheService.set('static_albums', sampleAlbums, 180);
@@ -222,7 +239,7 @@ export default function HomePage() {
 
   const handleSearch = (q: string) => {
     setSearchQuery(q);
-    if (activeTab === 'home' || activeTab === 'settings') {
+    if (activeTab === 'home' || activeTab === 'settings' || activeTab === 'playlists') {
       setActiveTab('songs');
     }
     fetchCategoryTracks(q, 'song');
@@ -234,32 +251,33 @@ export default function HomePage() {
     fetchCategoryTracks(artistQuery, 'song');
   };
 
-  const genres = [
-    { label: '🔥 Trending Hindi', query: 'Top Bollywood Hindi Hits 2026' },
-    { label: '✨ Punjabi Pop', query: 'Latest Punjabi Pop Hits 2026' },
-    { label: '🎧 Lo-Fi Beats', query: 'Lo-Fi Chill Hindi Beats' },
-    { label: '🌍 Global Top 50', query: 'Global Billboard Top 50 Songs' },
-    { label: '💪 Gym Energy', query: 'High Energy Workout Hits' },
-    { label: '🌙 Night Drive', query: 'Midnight Drive Lo-Fi Songs' },
-  ];
+  const activeAppBg =
+    themeMode === 'dark'
+      ? '#09090b'
+      : themeMode === 'dynamic'
+      ? backgroundColor || '#160913'
+      : '#09090b';
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#09090b]">
-      {/* Sidebar Navigation */}
+    <div
+      style={{ backgroundColor: activeAppBg }}
+      className="flex h-screen w-screen overflow-hidden text-white transition-colors duration-500"
+    >
+      {/* Sidebar / Left Rotated Rail */}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-[calc(100vh-88px)] overflow-y-auto">
-        {/* Top Sticky Header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 glass border-b border-white/5 gap-2 sm:gap-4">
+      {/* Main Scrollable Canvas */}
+      <main className="flex-1 flex flex-col h-[calc(100vh-80px)] md:h-[calc(100vh-88px)] overflow-y-auto relative">
+        {/* Top Header Bar */}
+        <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 py-3.5 bg-black/20 backdrop-blur-xl border-b border-white/5 gap-3">
           <SearchBar onSearch={handleSearch} isLoading={isLoading} />
 
           {activeTab !== 'settings' && (
-            <div className="flex items-center gap-1 sm:gap-2 bg-zinc-900/80 p-1 rounded-xl border border-white/10 flex-shrink-0">
+            <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5 flex-shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-lg transition-colors ${
-                  viewMode === 'grid' ? 'bg-emerald-500/20 text-emerald-400' : 'text-zinc-400 hover:text-white'
+                  viewMode === 'grid' ? 'bg-white/20 text-white' : 'text-zinc-400 hover:text-white'
                 }`}
                 title="Grid View"
               >
@@ -268,7 +286,7 @@ export default function HomePage() {
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-1.5 rounded-lg transition-colors ${
-                  viewMode === 'list' ? 'bg-emerald-500/20 text-emerald-400' : 'text-zinc-400 hover:text-white'
+                  viewMode === 'list' ? 'bg-white/20 text-white' : 'text-zinc-400 hover:text-white'
                 }`}
                 title="List View"
               >
@@ -278,104 +296,339 @@ export default function HomePage() {
           )}
         </header>
 
-        {/* ================= TAB 1: HOME (BOLI SMART ENGINE) ================= */}
-        {activeTab === 'home' && (
-          <div className="p-4 sm:p-8 space-y-10 animate-in fade-in duration-300">
-            {/* BOLI Dynamic Greeting Card */}
-            {boliData.basedOn && (
-              <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-zinc-900/60 to-zinc-900/40 border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-emerald-950/20">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
-                    <Sparkles className="w-5 h-5 animate-pulse" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                      BOLI Smart Discovery
-                    </span>
-                    <h3 className="text-sm font-semibold text-white truncate max-w-xs sm:max-w-md">
-                      Tailored to &ldquo;{boliData.basedOn.title}&rdquo; &bull; {boliData.basedOn.artist}
-                    </h3>
-                  </div>
-                </div>
+        {/* ========================================================================= */}
+        {/* 📚 PLAYLIST DETAIL / HUB VIEW (History, Favorites, Offline, etc.)          */}
+        {/* ========================================================================= */}
+        {openedPlaylist ? (
+          <div className="p-4 sm:p-8 space-y-6 animate-in fade-in duration-200 pb-20">
+            {/* Back Button */}
+            <button
+              onClick={() => setOpenedPlaylist(null)}
+              className="flex items-center gap-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Back to Library</span>
+            </button>
 
+            {/* Gradient Banner (Screenshot 2 & 3 Exact Replica) */}
+            <div className="w-full rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-purple-700 via-rose-600 to-amber-600 shadow-2xl flex flex-col items-center justify-center text-center space-y-4">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-xl">
+                <Music className="w-10 h-10 sm:w-12 sm:h-12" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  {openedPlaylist.title}
+                </h1>
+                <p className="text-xs text-white/80 font-medium mt-1">playlist &bull; {openedPlaylist.tracks.length} tracks</p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 pt-2">
                 <button
-                  onClick={() => handleArtistClick(`${boliData.basedOn?.artist} mix`)}
-                  className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-1.5"
+                  onClick={() => openedPlaylist.tracks[0] && playTrack(openedPlaylist.tracks[0], openedPlaylist.tracks)}
+                  disabled={openedPlaylist.tracks.length === 0}
+                  className="px-6 py-2.5 rounded-full bg-white text-black text-xs font-bold flex items-center gap-2 shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-40"
                 >
-                  <Play className="w-3.5 h-3.5 fill-black" />
-                  Play Artist Radio
+                  <Play className="w-4 h-4 fill-black" />
+                  <span>Play All</span>
                 </button>
-              </div>
-            )}
-
-            {/* Section 1: Quick Picks (Similar Vibe) */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-emerald-400" />
-                  <h2 className="text-lg font-bold text-white tracking-tight">
-                    {boliData.basedOn ? `Quick Picks for You` : `Trending & Quick Picks`}
-                  </h2>
-                </div>
-                <span className="text-xs text-zinc-500">
-                  {boliData.quickPicks.length > 0 ? `${boliData.quickPicks.length} tracks` : `${tracks.length} tracks`}
-                </span>
-              </div>
-
-              {/* Horizontal Scroll Carousel */}
-              <div className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x scrollbar-none">
-                {(boliData.quickPicks.length > 0 ? boliData.quickPicks : tracks).map((track) => (
-                  <div key={track.id} className="min-w-[170px] max-w-[170px] snap-start flex-shrink-0">
-                    <TrackCard track={track} />
-                  </div>
-                ))}
               </div>
             </div>
 
-            {/* Section 2: More from Artist (If Available via BOLI) */}
-            {boliData.artistTopTracks.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Mic2 className="w-5 h-5 text-teal-400" />
-                    <h2 className="text-lg font-bold text-white tracking-tight">
-                      More by {boliData.basedOn?.artist}
-                    </h2>
-                  </div>
-                  <button
-                    onClick={() => handleArtistClick(`${boliData.basedOn?.artist} songs`)}
-                    className="text-xs font-semibold text-emerald-400 hover:underline"
+            {/* Song List in Playlist */}
+            {openedPlaylist.tracks.length === 0 ? (
+              <div className="text-center py-16 text-zinc-500 space-y-2">
+                <p className="text-sm font-medium">Empty playlist!</p>
+                <p className="text-xs text-zinc-600">Start playing songs to build this list automatically.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/5 rounded-2xl bg-white/[0.02] border border-white/5 overflow-hidden">
+                {openedPlaylist.tracks.map((track, idx) => (
+                  <div
+                    key={`${track.id}-${idx}`}
+                    onClick={() => playTrack(track, openedPlaylist.tracks)}
+                    className="flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors cursor-pointer group"
                   >
-                    View All
-                  </button>
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <span className="text-xs font-bold text-zinc-500 w-5 text-center">{idx + 1}</span>
+                      <div className="w-11 h-11 rounded-lg overflow-hidden bg-black/40 flex-shrink-0 relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-semibold text-white group-hover:text-rose-400 transition-colors truncate">
+                          {track.title}
+                        </h4>
+                        <p className="text-[11px] sm:text-xs text-zinc-400 truncate">{track.artist}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-zinc-500 font-mono pr-2">{track.durationFormatted}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* ========================================================================= */}
+            {/* 🏠 TAB 1: HOME / DISCOVER (BOLI Dynamic Engine - Screenshot 2 & 4)         */}
+            {/* ========================================================================= */}
+            {activeTab === 'home' && (
+              <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-300 pb-20">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-white tracking-tight">Discover</h2>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                  {boliData.artistTopTracks.slice(0, 6).map((track) => (
-                    <TrackCard key={track.id} track={track} />
-                  ))}
+                {/* Section 1: 2-Row Horizontal Scroll or Grid of Quick Picks */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {(boliData.quickPicks.length > 0 ? boliData.quickPicks.slice(0, 8) : tracks.slice(0, 8)).map(
+                    (track) => (
+                      <div
+                        key={track.id}
+                        onClick={() =>
+                          playTrack(
+                            track,
+                            boliData.quickPicks.length > 0 ? boliData.quickPicks : tracks
+                          )
+                        }
+                        className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 transition-all cursor-pointer group select-none shadow-sm"
+                      >
+                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/40 flex-shrink-0 relative shadow-md">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={track.thumbnail}
+                            alt={track.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-rose-400 transition-colors">
+                            {track.title}
+                          </h4>
+                          <p className="text-[11px] text-zinc-400 truncate mt-0.5">{track.artist}</p>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+
+                {/* Section 2: Artist Albums (Screenshot 2: "The Weeknd Albums") */}
+                {(boliData.artistAlbums.length > 0 ? boliData.artistAlbums : albums).length > 0 && (
+                  <div className="space-y-4 pt-2">
+                    <h3 className="text-lg font-bold text-white tracking-tight">
+                      {boliData.basedOn?.artist ? `${boliData.basedOn.artist} Albums` : 'Top & Trending Albums'}
+                    </h3>
+
+                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
+                      {(boliData.artistAlbums.length > 0 ? boliData.artistAlbums : albums).map((alb) => (
+                        <div
+                          key={alb.id}
+                          onClick={() => handleArtistClick(`${alb.title} ${alb.artist}`)}
+                          className="min-w-[150px] max-w-[150px] snap-start flex-shrink-0 group cursor-pointer"
+                        >
+                          <div className="w-full aspect-square rounded-2xl overflow-hidden mb-2.5 bg-black/40 relative shadow-lg">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={alb.thumbnail}
+                              alt={alb.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          </div>
+                          <h4 className="text-xs font-bold text-white truncate">{alb.title}</h4>
+                          <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                            Album &bull; {alb.year || '2024'}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Section 3: Mood Playlists (Screenshot 4: "Rain Therapy 🍀🌧️") */}
+                <div className="space-y-4 pt-2">
+                  <h3 className="text-lg font-bold text-white tracking-tight">
+                    Rain Therapy 🍀🌧️
+                  </h3>
+
+                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
+                    {(boliData.relatedPlaylists.length > 0 ? boliData.relatedPlaylists : playlists).map((pl) => (
+                      <div
+                        key={pl.id}
+                        onClick={() => handleArtistClick(pl.title)}
+                        className="min-w-[150px] max-w-[150px] snap-start flex-shrink-0 group cursor-pointer"
+                      >
+                        <div className="w-full aspect-square rounded-2xl overflow-hidden mb-2.5 bg-black/40 relative shadow-lg">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={pl.thumbnail}
+                            alt={pl.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        </div>
+                        <h4 className="text-xs font-bold text-white truncate">{pl.title}</h4>
+                        <p className="text-[11px] text-zinc-400 truncate mt-0.5">{pl.author || 'Mix'}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Section 3: Artist Albums / EPs */}
-            {boliData.artistAlbums.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Disc3 className="w-5 h-5 text-emerald-400" />
-                  <h2 className="text-lg font-bold text-white tracking-tight">
-                    Albums & Releases
-                  </h2>
+            {/* ========================================================================= */}
+            {/* 🎵 TAB 2: SONGS (Screenshot 4: "Library Songs")                            */}
+            {/* ========================================================================= */}
+            {activeTab === 'songs' && (
+              <div className="p-4 sm:p-8 space-y-6 animate-in fade-in duration-300 pb-20">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-white tracking-tight">Library Songs</h2>
+                  <span className="text-xs text-zinc-400">{tracks.length} items</span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {boliData.artistAlbums.map((alb) => (
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-3 text-zinc-400">
+                    <Loader2 className="w-8 h-8 animate-spin text-rose-400" />
+                    <p className="text-sm font-medium">Fetching songs...</p>
+                  </div>
+                ) : viewMode === 'grid' ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {tracks.map((track) => (
+                      <TrackCard key={track.id} track={track} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="divide-y divide-white/5 rounded-2xl bg-white/[0.02] border border-white/5 overflow-hidden">
+                    {tracks.map((track, idx) => (
+                      <div
+                        key={track.id}
+                        onClick={() => playTrack(track, tracks)}
+                        className="flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <span className="text-xs font-bold text-zinc-500 w-5 text-center">{idx + 1}</span>
+                          <div className="w-11 h-11 rounded-lg overflow-hidden bg-black/40 flex-shrink-0 relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs sm:text-sm font-semibold text-white group-hover:text-rose-400 transition-colors truncate">
+                              {track.title}
+                            </h4>
+                            <p className="text-[11px] sm:text-xs text-zinc-400 truncate">{track.artist}</p>
+                          </div>
+                        </div>
+                        <span className="text-xs text-zinc-500 font-mono pr-2">{track.durationFormatted}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* 📑 TAB 3: PLAYLISTS (Screenshot 1: "Library Playlists" - 4 Main Cards)      */}
+            {/* ========================================================================= */}
+            {activeTab === 'playlists' && (
+              <div className="p-4 sm:p-8 space-y-6 animate-in fade-in duration-300 pb-20">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-white tracking-tight">Library Playlists</h2>
+                  <span className="text-xs text-zinc-400">4 items</span>
+                </div>
+
+                {/* Screenshot 1: 4 Big Aesthetic Cards */}
+                <div className="grid grid-cols-2 gap-4 sm:gap-6">
+                  {/* Card 1: Recently Played (History) */}
+                  <div
+                    onClick={() =>
+                      setOpenedPlaylist({
+                        id: 'history',
+                        title: 'Recently Played',
+                        tracks: history,
+                      })
+                    }
+                    className="aspect-square rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-6 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
+                  >
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-3 transition-colors">
+                      <Clock className="w-7 h-7 sm:w-8 sm:h-8" />
+                    </div>
+                    <h3 className="text-sm sm:text-base font-bold text-white">Recently Played</h3>
+                    <p className="text-[11px] text-zinc-400 mt-1">{history.length} songs</p>
+                  </div>
+
+                  {/* Card 2: Favorites */}
+                  <div
+                    onClick={() =>
+                      setOpenedPlaylist({
+                        id: 'favorites',
+                        title: 'Favorites',
+                        tracks: favorites,
+                      })
+                    }
+                    className="aspect-square rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-6 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
+                  >
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-rose-400 mb-3 transition-colors">
+                      <Heart className="w-7 h-7 sm:w-8 sm:h-8 fill-current" />
+                    </div>
+                    <h3 className="text-sm sm:text-base font-bold text-white">Favorites</h3>
+                    <p className="text-[11px] text-zinc-400 mt-1">{favorites.length} songs</p>
+                  </div>
+
+                  {/* Card 3: Cached / Offline */}
+                  <div
+                    onClick={() =>
+                      setOpenedPlaylist({
+                        id: 'offline',
+                        title: 'Cached/Offline',
+                        tracks: offlineTracks,
+                      })
+                    }
+                    className="aspect-square rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-6 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
+                  >
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-3 transition-colors">
+                      <Plane className="w-7 h-7 sm:w-8 sm:h-8" />
+                    </div>
+                    <h3 className="text-sm sm:text-base font-bold text-white">Cached/Offline</h3>
+                    <p className="text-[11px] text-zinc-400 mt-1">{offlineTracks.length} songs</p>
+                  </div>
+
+                  {/* Card 4: Curated / Downloads */}
+                  <div
+                    onClick={() =>
+                      setOpenedPlaylist({
+                        id: 'curated',
+                        title: 'Curated Hits',
+                        tracks: tracks,
+                      })
+                    }
+                    className="aspect-square rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 p-6 flex flex-col items-center justify-center text-center cursor-pointer group shadow-xl transition-all active:scale-95 select-none"
+                  >
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-3 transition-colors">
+                      <Download className="w-7 h-7 sm:w-8 sm:h-8" />
+                    </div>
+                    <h3 className="text-sm sm:text-base font-bold text-white">Curated Hits</h3>
+                    <p className="text-[11px] text-zinc-400 mt-1">{tracks.length} songs</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* 💿 TAB 4: ALBUMS                                                          */}
+            {/* ========================================================================= */}
+            {activeTab === 'albums' && (
+              <div className="p-4 sm:p-8 space-y-6 animate-in fade-in duration-300 pb-20">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-white tracking-tight">Library Albums</h2>
+                  <span className="text-xs text-zinc-400">{albums.length} albums</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+                  {albums.map((alb) => (
                     <div
                       key={alb.id}
                       onClick={() => handleArtistClick(`${alb.title} ${alb.artist}`)}
-                      className="group p-3 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer shadow-md"
+                      className="group p-3.5 rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 transition-all cursor-pointer shadow-lg"
                     >
-                      <div className="w-full aspect-square rounded-xl overflow-hidden mb-3 bg-black/40 relative">
+                      <div className="w-full aspect-square rounded-2xl overflow-hidden mb-3 bg-black/40 relative">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={alb.thumbnail}
@@ -383,222 +636,74 @@ export default function HomePage() {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       </div>
-                      <h4 className="text-xs font-bold text-white truncate">{alb.title}</h4>
-                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">{alb.artist}</p>
+                      <h4 className="text-xs sm:text-sm font-bold text-white truncate">{alb.title}</h4>
+                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                        {alb.artist} &bull; {alb.year}
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Section 4: Related Playlists & Mood Vibes */}
-            {boliData.relatedPlaylists.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <ListMusic className="w-5 h-5 text-teal-400" />
-                  <h2 className="text-lg font-bold text-white tracking-tight">
-                    Related Playlists & Vibes
-                  </h2>
+            {/* ========================================================================= */}
+            {/* 🎤 TAB 5: ARTISTS                                                         */}
+            {/* ========================================================================= */}
+            {activeTab === 'artists' && (
+              <div className="p-4 sm:p-8 space-y-6 animate-in fade-in duration-300 pb-20">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-white tracking-tight">Artists</h2>
+                  <span className="text-xs text-zinc-400">{FEATURED_ARTISTS.length} artists</span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {boliData.relatedPlaylists.map((pl) => (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
+                  {FEATURED_ARTISTS.map((artist) => (
                     <div
-                      key={pl.id}
-                      onClick={() => handleArtistClick(`${pl.title}`)}
-                      className="group p-3 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/5 hover:border-teal-500/30 transition-all cursor-pointer shadow-md"
+                      key={artist.name}
+                      onClick={() => handleArtistClick(artist.query)}
+                      className="group p-4 rounded-3xl bg-[#291b26] hover:bg-[#342231] border border-white/5 transition-all cursor-pointer text-center flex flex-col items-center shadow-lg"
                     >
-                      <div className="w-full aspect-square rounded-xl overflow-hidden mb-3 bg-black/40 relative">
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden mb-3 bg-zinc-800 shadow-md relative group-hover:ring-2 group-hover:ring-rose-400/50 transition-all">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={pl.thumbnail}
-                          alt={pl.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          src={artist.image}
+                          alt={artist.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                       </div>
-                      <h4 className="text-xs font-bold text-white truncate">{pl.title}</h4>
-                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">{pl.author || 'Mix'}</p>
+                      <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-rose-400 transition-colors truncate w-full">
+                        {artist.name}
+                      </h4>
+                      <span className="text-[10px] font-semibold text-rose-400/80 uppercase tracking-widest mt-1">
+                        Artist
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </div>
+
+            {/* ========================================================================= */}
+            {/* ⚙️ TAB 6: SETTINGS                                                        */}
+            {/* ========================================================================= */}
+            {activeTab === 'settings' && <SettingsView />}
+          </>
         )}
 
-        {/* ================= TAB 2: SONGS (FULL BROWSER & GENRE FILTER) ================= */}
-        {activeTab === 'songs' && (
-          <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-300">
-            {/* Quick Mood Filter Chips */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-              {genres.map((g) => (
-                <button
-                  key={g.label}
-                  onClick={() => handleSearch(g.query)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-zinc-900/80 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-zinc-300 hover:text-emerald-400 transition-all active:scale-95"
-                >
-                  {g.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Tracks Render Area */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Music2 className="w-5 h-5 text-emerald-400" />
-                  <h2 className="text-lg font-bold text-white tracking-tight">
-                    {searchQuery ? `Results for "${searchQuery}"` : 'All Trending Songs'}
-                  </h2>
-                </div>
-                <span className="text-xs text-zinc-500">{tracks.length} tracks available</span>
-              </div>
-
-              {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3 text-zinc-400">
-                  <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
-                  <p className="text-sm font-medium">Discovering high quality music...</p>
-                </div>
-              ) : viewMode === 'grid' ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                  {tracks.map((track) => (
-                    <TrackCard key={track.id} track={track} />
-                  ))}
-                </div>
-              ) : (
-                <div className="divide-y divide-white/5 rounded-2xl bg-zinc-900/40 border border-white/5 overflow-hidden">
-                  {tracks.map((track, idx) => (
-                    <div
-                      key={track.id}
-                      onClick={() => playTrack(track, tracks)}
-                      className="flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <span className="text-xs font-bold text-zinc-500 w-5 text-center">{idx + 1}</span>
-                        <div className="w-11 h-11 rounded-lg overflow-hidden bg-black/40 flex-shrink-0 relative">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xs sm:text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors truncate">
-                            {track.title}
-                          </h4>
-                          <p className="text-[11px] sm:text-xs text-zinc-400 truncate">{track.artist}</p>
-                        </div>
-                      </div>
-                      <span className="text-xs text-zinc-500 font-mono pr-2">{track.durationFormatted}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAB 3: PLAYLISTS ================= */}
-        {activeTab === 'playlists' && (
-          <div className="p-4 sm:p-8 space-y-6 animate-in fade-in duration-300">
-            <div className="flex items-center gap-2">
-              <ListMusic className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-lg font-bold text-white tracking-tight">Curated Mood Playlists</h2>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
-              {playlists.map((pl) => (
-                <div
-                  key={pl.id}
-                  onClick={() => handleArtistClick(`${pl.title} songs`)}
-                  className="group p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer shadow-lg hover:shadow-emerald-950/20"
-                >
-                  <div className="w-full aspect-square rounded-xl overflow-hidden mb-3 bg-black/40 relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={pl.thumbnail}
-                      alt={pl.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-emerald-500 text-black flex items-center justify-center opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all shadow-xl">
-                        <Play className="w-4 h-4 fill-black translate-x-0.5" />
-                      </div>
-                    </div>
-                  </div>
-                  <h4 className="text-xs sm:text-sm font-bold text-white truncate">{pl.title}</h4>
-                  <p className="text-[11px] text-zinc-400 truncate mt-0.5">{pl.author} &bull; {pl.itemCount}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAB 4: ALBUMS ================= */}
-        {activeTab === 'albums' && (
-          <div className="p-4 sm:p-8 space-y-6 animate-in fade-in duration-300">
-            <div className="flex items-center gap-2">
-              <Disc3 className="w-5 h-5 text-teal-400" />
-              <h2 className="text-lg font-bold text-white tracking-tight">Top & Featured Albums</h2>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
-              {albums.map((alb) => (
-                <div
-                  key={alb.id}
-                  onClick={() => handleArtistClick(`${alb.title} ${alb.artist}`)}
-                  className="group p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/5 hover:border-teal-500/30 transition-all cursor-pointer shadow-lg hover:shadow-teal-950/20"
-                >
-                  <div className="w-full aspect-square rounded-xl overflow-hidden mb-3 bg-black/40 relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={alb.thumbnail}
-                      alt={alb.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <h4 className="text-xs sm:text-sm font-bold text-white truncate">{alb.title}</h4>
-                  <p className="text-[11px] text-zinc-400 truncate mt-0.5">{alb.artist} ({alb.year})</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAB 5: ARTISTS ================= */}
-        {activeTab === 'artists' && (
-          <div className="p-4 sm:p-8 space-y-6 animate-in fade-in duration-300">
-            <div className="flex items-center gap-2">
-              <Mic2 className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-lg font-bold text-white tracking-tight">Top & Trending Artists</h2>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
-              {FEATURED_ARTISTS.map((artist) => (
-                <div
-                  key={artist.name}
-                  onClick={() => handleArtistClick(artist.query)}
-                  className="group p-4 rounded-2xl bg-zinc-900/50 hover:bg-zinc-800/80 border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer text-center flex flex-col items-center shadow-lg"
-                >
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden mb-3 bg-zinc-800 shadow-md relative group-hover:ring-2 group-hover:ring-emerald-400/50 transition-all">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={artist.image}
-                      alt={artist.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  </div>
-                  <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-emerald-400 transition-colors truncate w-full">
-                    {artist.name}
-                  </h4>
-                  <span className="text-[10px] font-semibold text-emerald-400/80 uppercase tracking-widest mt-1">
-                    Artist
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAB 6: SETTINGS ================= */}
-        {activeTab === 'settings' && <SettingsView />}
+        {/* Floating Search FAB Button on Mobile (Screenshots 2 & 4) */}
+        <button
+          onClick={() => {
+            const input = document.querySelector('input[type="text"]') as HTMLInputElement;
+            if (input) {
+              input.focus();
+              input.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+          className="fixed bottom-20 right-4 md:hidden z-30 w-12 h-12 rounded-2xl bg-[#3b2a37] text-white flex items-center justify-center shadow-2xl border border-white/10 active:scale-95 transition-all"
+          title="Search"
+        >
+          <Search className="w-5 h-5" />
+        </button>
       </main>
     </div>
   );

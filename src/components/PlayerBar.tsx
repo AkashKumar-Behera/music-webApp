@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePlayerStore } from '@/store/usePlayerStore';
+import { useThemeStore } from '@/lib/themeStore';
+import { OfflineStore } from '@/lib/offlineStore';
 import {
   Play,
   Pause,
@@ -11,13 +13,13 @@ import {
   Repeat,
   Repeat1,
   Volume2,
-  Volume1,
   VolumeX,
-  ListMusic,
+  Volume1,
   Maximize2,
-  Heart,
-  Loader2,
+  ListMusic,
   Mic2,
+  Loader2,
+  Heart,
 } from 'lucide-react';
 
 export const PlayerBar: React.FC = () => {
@@ -26,15 +28,16 @@ export const PlayerBar: React.FC = () => {
     isPlaying,
     isLoading,
     queue,
+    history,
     currentTime,
     duration,
     volume,
     isMuted,
     repeatMode,
     isShuffled,
-    isQueueOpen,
     isLyricsOpen,
-    toggleFullScreenPlayer,
+    isQueueOpen,
+    isFullScreenPlayerOpen,
     togglePlay,
     setIsPlaying,
     setIsLoading,
@@ -42,22 +45,85 @@ export const PlayerBar: React.FC = () => {
     setDuration,
     nextTrack,
     prevTrack,
-    setVolume,
-    toggleMute,
     toggleRepeat,
     toggleShuffle,
+    setVolume,
+    toggleMute,
+    toggleFullScreenPlayer,
+    setIsFullScreenPlayerOpen,
     toggleQueue,
     toggleLyrics,
     addToQueue,
+    toggleFavorite,
+    isFavorite,
   } = usePlayerStore();
+
+  const { dominantColor, backgroundColor, themeMode } = useThemeStore();
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
+  const [activeAudioSrc, setActiveAudioSrc] = useState<string>('');
 
-  // Direct backend audio stream endpoint
-  const streamSrc = currentTrack ? `/api/stream?id=${currentTrack.id}` : '';
+  // Swipe Up Gestures on Mini Player
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const diff = touchStartY.current - e.changedTouches[0].clientY;
+    if (diff > 40) {
+      // Swiped Up -> Open Full Screen Player
+      setIsFullScreenPlayerOpen(true);
+    }
+    touchStartY.current = null;
+  };
+
+  // Resolve stream: Check Offline IndexedDB first, else stream from backend
+  useEffect(() => {
+    let isCancelled = false;
+    if (!currentTrack) {
+      setActiveAudioSrc('');
+      return;
+    }
+
+    const resolveStream = async () => {
+      // 1. Check if cached in IndexedDB
+      const cachedBlob = await OfflineStore.getTrackBlob(currentTrack.id);
+      if (cachedBlob && !isCancelled) {
+        const localBlobUrl = URL.createObjectURL(cachedBlob);
+        setActiveAudioSrc(localBlobUrl);
+        return;
+      }
+
+      // 2. Stream from backend API
+      const networkSrc = `/api/stream?id=${currentTrack.id}`;
+      if (!isCancelled) {
+        setActiveAudioSrc(networkSrc);
+      }
+
+      // 3. Cache audio blob in background for 0-internet offline playback
+      try {
+        const streamResp = await fetch(networkSrc);
+        if (streamResp.ok) {
+          const blob = await streamResp.blob();
+          if (blob && blob.size > 100000) {
+            await OfflineStore.saveTrack(currentTrack, blob);
+          }
+        }
+      } catch {
+        // Offline or background network interrupted, ignore
+      }
+    };
+
+    resolveStream();
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentTrack]);
 
   // Handle Track Play / Pause transitions
   useEffect(() => {
@@ -73,7 +139,7 @@ export const PlayerBar: React.FC = () => {
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying, currentTrack]);
+  }, [isPlaying, currentTrack, activeAudioSrc]);
 
   // Handle Volume & Mute Sync
   useEffect(() => {
@@ -82,7 +148,7 @@ export const PlayerBar: React.FC = () => {
     }
   }, [volume, isMuted]);
 
-  // MediaSession API for Native iOS / Android Lock Screen Controls
+  // MediaSession API for Native Lock Screen Controls
   useEffect(() => {
     if (!currentTrack || typeof window === 'undefined' || !('mediaSession' in navigator)) return;
 
@@ -101,86 +167,27 @@ export const PlayerBar: React.FC = () => {
 
     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
 
-    navigator.mediaSession.setActionHandler('play', () => {
-      setIsPlaying(true);
-    });
+    navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
+    navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
+    navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
+    navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
+  }, [currentTrack, isPlaying, nextTrack, prevTrack, setIsPlaying]);
 
-    navigator.mediaSession.setActionHandler('pause', () => {
-      setIsPlaying(false);
-    });
-
-    navigator.mediaSession.setActionHandler('previoustrack', () => {
-      prevTrack();
-    });
-
-    navigator.mediaSession.setActionHandler('nexttrack', () => {
-      nextTrack();
-    });
-
-    navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-      const skip = details.seekOffset || 10;
-      if (audioRef.current) {
-        const newTime = Math.max(audioRef.current.currentTime - skip, 0);
-        audioRef.current.currentTime = newTime;
-        setCurrentTime(newTime);
-      }
-    });
-
-    navigator.mediaSession.setActionHandler('seekforward', (details) => {
-      const skip = details.seekOffset || 10;
-      if (audioRef.current) {
-        const total = duration || currentTrack.duration || 1;
-        const newTime = Math.min(audioRef.current.currentTime + skip, total);
-        audioRef.current.currentTime = newTime;
-        setCurrentTime(newTime);
-      }
-    });
-
-    try {
-      navigator.mediaSession.setActionHandler('seekto', (details) => {
-        if (details.seekTime !== undefined && audioRef.current) {
-          audioRef.current.currentTime = details.seekTime;
-          setCurrentTime(details.seekTime);
-        }
-      });
-    } catch (e) {}
-  }, [currentTrack, isPlaying, duration, prevTrack, nextTrack, setCurrentTime, setIsPlaying]);
-
-  // Update MediaSession Position State for Lock Screen Timeline
-  useEffect(() => {
-    if (
-      typeof window !== 'undefined' &&
-      'mediaSession' in navigator &&
-      'setPositionState' in navigator.mediaSession &&
-      duration > 0
-    ) {
-      try {
-        navigator.mediaSession.setPositionState({
-          duration: duration,
-          playbackRate: 1,
-          position: Math.min(currentTime, duration),
-        });
-      } catch (e) {}
-    }
-  }, [currentTime, duration]);
-
-  // Keyboard Shortcuts (Space, Arrow Keys, M)
+  // Keyboard Shortcuts (Space, Arrow Keys)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
 
       if (e.code === 'Space') {
         e.preventDefault();
         togglePlay();
       } else if (e.code === 'ArrowRight') {
-        e.preventDefault();
         if (audioRef.current) {
-          const newTime = Math.min(audioRef.current.currentTime + 5, duration);
+          const newTime = Math.min(audioRef.current.currentTime + 5, duration || 1);
           audioRef.current.currentTime = newTime;
           setCurrentTime(newTime);
         }
       } else if (e.code === 'ArrowLeft') {
-        e.preventDefault();
         if (audioRef.current) {
           const newTime = Math.max(audioRef.current.currentTime - 5, 0);
           audioRef.current.currentTime = newTime;
@@ -195,7 +202,6 @@ export const PlayerBar: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [togglePlay, toggleMute, duration, setCurrentTime]);
 
-  // Handle Track Ended (Repeat Modes & Auto-Next / Up-Next)
   const handleTrackEnded = async () => {
     if (repeatMode === 'one') {
       if (audioRef.current) {
@@ -218,7 +224,7 @@ export const PlayerBar: React.FC = () => {
         } else {
           nextTrack();
         }
-      } catch (err) {
+      } catch {
         nextTrack();
       }
     }
@@ -248,19 +254,20 @@ export const PlayerBar: React.FC = () => {
   const displayTime = isDragging ? dragTime : currentTime;
   const seekProgress = Math.min(100, Math.max(0, (displayTime / totalDuration) * 100));
 
+  const isLiked = currentTrack ? isFavorite(currentTrack.id) : false;
+
   return (
     <>
       {/* Native HTML5 Audio Element */}
       <audio
         ref={audioRef}
-        src={streamSrc}
+        src={activeAudioSrc}
         playsInline
         preload="auto"
         onTimeUpdate={() => {
           if (!isDragging && audioRef.current) {
             const rawCurrent = audioRef.current.currentTime;
             const knownDuration = (duration > 0 ? duration : currentTrack?.duration) || 0;
-            // Safari EOF safety check: If audio has reached real track length, end track
             if (knownDuration > 0 && rawCurrent >= knownDuration - 0.5) {
               handleTrackEnded();
               return;
@@ -272,7 +279,6 @@ export const PlayerBar: React.FC = () => {
           if (audioRef.current) {
             const rawDur = audioRef.current.duration;
             const trackDur = currentTrack?.duration || 0;
-            // Fix iOS Safari SBR 2x duration bug: If raw audio duration is ~2x track duration, use exact track metadata duration
             if (trackDur > 0 && (!rawDur || !isFinite(rawDur) || rawDur > trackDur * 1.3)) {
               setDuration(trackDur);
             } else if (rawDur && isFinite(rawDur) && rawDur > 0) {
@@ -299,16 +305,18 @@ export const PlayerBar: React.FC = () => {
       {currentTrack && (
         <>
           {/* ========================================================================= */}
-          {/* 📱 MOBILE MINI-PLAYER (Visible on screens < 768px)                       */}
+          {/* 📱 MOBILE MINI-PLAYER (Swipe Up to expand, with top progress line)         */}
           {/* ========================================================================= */}
           <div
-            onClick={toggleFullScreenPlayer}
-            className="fixed bottom-2 left-2 right-2 md:hidden z-50 bg-zinc-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-2.5 flex flex-col shadow-2xl cursor-pointer select-none"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onClick={() => setIsFullScreenPlayerOpen(true)}
+            className="fixed bottom-2 left-2 right-2 md:hidden z-40 bg-zinc-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-2.5 flex flex-col shadow-2xl cursor-pointer select-none"
           >
             {/* Top 2px Progress Line */}
             <div className="absolute top-0 left-3 right-3 h-[2px] bg-white/10 rounded-full overflow-hidden">
               <div
-                className="h-full bg-emerald-400 transition-all duration-150"
+                className="h-full bg-white transition-all duration-150"
                 style={{ width: `${seekProgress}%` }}
               />
             </div>
@@ -317,18 +325,12 @@ export const PlayerBar: React.FC = () => {
               {/* Left: Thumbnail & Info */}
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0 shadow-md border border-white/10">
-                  {currentTrack.thumbnail ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={currentTrack.thumbnail}
-                      alt={currentTrack.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-500 font-bold">
-                      CB
-                    </div>
-                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={currentTrack.thumbnail || '/placeholder.png'}
+                    alt={currentTrack.title}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -339,15 +341,6 @@ export const PlayerBar: React.FC = () => {
 
               {/* Right: Quick Mobile Controls */}
               <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={() => setIsLiked(!isLiked)}
-                  className={`p-2 rounded-xl transition-all ${
-                    isLiked ? 'text-rose-500 fill-rose-500' : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                </button>
-
                 <button
                   onClick={togglePlay}
                   className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg active:scale-95 transition-all"
@@ -372,27 +365,21 @@ export const PlayerBar: React.FC = () => {
           </div>
 
           {/* ========================================================================= */}
-          {/* 💻 DESKTOP PLAYER BAR (Visible on screens >= 768px)                      */}
+          {/* 💻 DESKTOP PLAYER BAR                                                    */}
           {/* ========================================================================= */}
-          <div className="hidden md:flex fixed bottom-0 left-0 right-0 h-24 bg-zinc-950/90 backdrop-blur-2xl border-t border-white/10 z-50 items-center justify-between px-6 select-none shadow-2xl">
+          <div className="hidden md:flex fixed bottom-0 left-0 right-0 h-24 bg-zinc-950/90 backdrop-blur-2xl border-t border-white/10 z-40 items-center justify-between px-6 select-none shadow-2xl">
             {/* Left: Song Info & Heart */}
             <div className="flex items-center gap-3.5 w-72 min-w-0">
               <div
-                onClick={toggleFullScreenPlayer}
+                onClick={() => setIsFullScreenPlayerOpen(true)}
                 className="relative w-14 h-14 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0 cursor-pointer group shadow-md border border-white/10"
               >
-                {currentTrack.thumbnail ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={currentTrack.thumbnail}
-                    alt={currentTrack.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-500 font-bold">
-                    CB
-                  </div>
-                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={currentTrack.thumbnail || '/placeholder.png'}
+                  alt={currentTrack.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <Maximize2 className="w-5 h-5 text-white" />
                 </div>
@@ -400,7 +387,7 @@ export const PlayerBar: React.FC = () => {
 
               <div className="min-w-0 flex-1">
                 <h4
-                  onClick={toggleFullScreenPlayer}
+                  onClick={() => setIsFullScreenPlayerOpen(true)}
                   className="text-sm font-semibold text-white truncate cursor-pointer hover:underline"
                 >
                   {currentTrack.title}
@@ -409,7 +396,7 @@ export const PlayerBar: React.FC = () => {
               </div>
 
               <button
-                onClick={() => setIsLiked(!isLiked)}
+                onClick={() => toggleFavorite(currentTrack)}
                 title={isLiked ? 'Unlike' : 'Like'}
                 className={`p-2 rounded-xl transition-all flex-shrink-0 hover:scale-110 active:scale-95 ${
                   isLiked ? 'text-rose-500 fill-rose-500' : 'text-zinc-400 hover:text-white'
@@ -426,7 +413,7 @@ export const PlayerBar: React.FC = () => {
                   onClick={toggleShuffle}
                   title={isShuffled ? 'Shuffle enabled' : 'Shuffle disabled'}
                   className={`p-1.5 rounded-lg transition-colors ${
-                    isShuffled ? 'text-emerald-400' : 'text-zinc-400 hover:text-white'
+                    isShuffled ? 'text-white' : 'text-zinc-400 hover:text-white'
                   }`}
                 >
                   <Shuffle className="w-4 h-4" />
@@ -443,7 +430,7 @@ export const PlayerBar: React.FC = () => {
                 <button
                   onClick={togglePlay}
                   title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
-                  className="w-10 h-10 rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all flex items-center justify-center shadow-lg shadow-white/10"
+                  className="w-10 h-10 rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all flex items-center justify-center shadow-lg"
                 >
                   {isLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin text-black" />
@@ -456,7 +443,7 @@ export const PlayerBar: React.FC = () => {
 
                 <button
                   onClick={nextTrack}
-                  title="Next Track"
+                  title="Next"
                   className="text-zinc-300 hover:text-white hover:scale-105 active:scale-95 transition-all p-1"
                 >
                   <SkipForward className="w-5 h-5 fill-current" />
@@ -466,77 +453,76 @@ export const PlayerBar: React.FC = () => {
                   onClick={toggleRepeat}
                   title={`Repeat: ${repeatMode}`}
                   className={`p-1.5 rounded-lg transition-colors ${
-                    repeatMode !== 'off' ? 'text-emerald-400' : 'text-zinc-400 hover:text-white'
+                    repeatMode !== 'off' ? 'text-white' : 'text-zinc-400 hover:text-white'
                   }`}
                 >
                   {repeatMode === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
                 </button>
               </div>
 
-              {/* Seekbar */}
-              <div className="w-full flex items-center gap-2.5 group/range">
-                <span className="text-[11px] font-mono text-zinc-400 w-9 text-right">{formatTime(displayTime)}</span>
-                <div className="relative w-full flex items-center">
+              {/* Progress Slider */}
+              <div className="w-full flex items-center gap-3">
+                <span className="text-xs font-mono text-zinc-400 w-10 text-right">
+                  {formatTime(displayTime)}
+                </span>
+                <div className="relative group/timeline w-full flex items-center py-1 cursor-pointer">
                   <input
                     type="range"
                     min={0}
                     max={totalDuration}
+                    step={0.1}
                     value={displayTime}
-                    onMouseDown={() => {
-                      setIsDragging(true);
-                      setDragTime(currentTime);
-                    }}
-                    onTouchStart={() => {
-                      setIsDragging(true);
-                      setDragTime(currentTime);
-                    }}
-                    onMouseUp={handleSeekCommit}
-                    onTouchEnd={handleSeekCommit}
                     onChange={handleSeekChange}
-                    style={{
-                      background: `linear-gradient(to right, #10b981 ${seekProgress}%, rgba(255,255,255,0.15) ${seekProgress}%)`,
-                    }}
-                    className="w-full h-1.5 hover:h-2 rounded-lg cursor-pointer transition-all"
+                    onMouseDown={() => setIsDragging(true)}
+                    onMouseUp={handleSeekCommit}
+                    className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
                   />
+                  <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-white rounded-full"
+                      style={{ width: `${seekProgress}%` }}
+                    />
+                  </div>
                 </div>
-                <span className="text-[11px] font-mono text-zinc-400 w-9">{formatTime(totalDuration)}</span>
+                <span className="text-xs font-mono text-zinc-400 w-10">
+                  {formatTime(totalDuration)}
+                </span>
               </div>
             </div>
 
-            {/* Right: Extra Buttons (Lyrics, Queue, Download, Volume) */}
-            <div className="flex items-center gap-2.5 w-72 justify-end">
+            {/* Right: Volume & Drawer Toggles */}
+            <div className="flex items-center gap-4 w-72 justify-end">
               <button
                 onClick={toggleLyrics}
-                title="Lyrics"
-                className={`p-2 rounded-xl transition-colors ${
-                  isLyricsOpen ? 'text-emerald-400 bg-emerald-500/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                className={`p-2 rounded-xl transition-all ${
+                  isLyricsOpen ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-white'
                 }`}
+                title="Lyrics"
               >
                 <Mic2 className="w-4 h-4" />
               </button>
 
               <button
                 onClick={toggleQueue}
-                title="Queue"
-                className={`p-2 rounded-xl transition-colors ${
-                  isQueueOpen ? 'text-emerald-400 bg-emerald-500/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                className={`p-2 rounded-xl transition-all ${
+                  isQueueOpen ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-white'
                 }`}
+                title="Queue"
               >
                 <ListMusic className="w-4 h-4" />
               </button>
 
-              {/* Volume slider */}
-              <div className="flex items-center gap-2 group/range pl-1.5 py-1 px-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
-                <button onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'} className="text-zinc-400 hover:text-white transition-colors">
+              {/* Volume Slider */}
+              <div className="flex items-center gap-2">
+                <button onClick={toggleMute} className="text-zinc-400 hover:text-white transition-colors">
                   {isMuted || volume === 0 ? (
-                    <VolumeX className="w-4 h-4 text-zinc-400" />
+                    <VolumeX className="w-4 h-4" />
                   ) : volume < 0.5 ? (
-                    <Volume1 className="w-4 h-4 text-zinc-300" />
+                    <Volume1 className="w-4 h-4" />
                   ) : (
-                    <Volume2 className="w-4 h-4 text-emerald-400" />
+                    <Volume2 className="w-4 h-4" />
                   )}
                 </button>
-
                 <input
                   type="range"
                   min={0}
@@ -544,15 +530,8 @@ export const PlayerBar: React.FC = () => {
                   step={0.01}
                   value={isMuted ? 0 : volume}
                   onChange={(e) => setVolume(parseFloat(e.target.value))}
-                  style={{
-                    background: `linear-gradient(to right, #10b981 ${currentVolPercent}%, rgba(255,255,255,0.15) ${currentVolPercent}%)`,
-                  }}
-                  className="w-16 h-1.5 hover:h-2 rounded-lg cursor-pointer transition-all"
+                  className="w-20 h-1 accent-white bg-white/20 rounded-lg cursor-pointer"
                 />
-
-                <span className="text-[11px] font-mono font-medium text-zinc-400 w-8 text-right select-none">
-                  {currentVolPercent}%
-                </span>
               </div>
             </div>
           </div>
