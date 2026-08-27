@@ -9,9 +9,13 @@ import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
+String? _cookieFilePath;
+
 String _loadCookies() {
   final candidatePaths = [
     Platform.environment['COOKIES_FILE'],
+    '/home/ubuntu/music-webApp/extractor-server/cookies.txt',
+    '/home/ubuntu/music-webApp/cookies.txt',
     '/home/ubuntu/cookies.txt',
     'cookies.txt',
     '../cookies.txt',
@@ -40,8 +44,9 @@ String _loadCookies() {
           }
         }
         if (cookieMap.isNotEmpty) {
+          _cookieFilePath = file.absolute.path;
           final cookieStr = cookieMap.entries.map((e) => '${e.key}=${e.value}').join('; ');
-          print('🍪 Loaded ${cookieMap.length} YouTube cookies from $path');
+          print('🍪 Loaded ${cookieMap.length} YouTube cookies from ${file.absolute.path}');
           return cookieStr;
         }
       } catch (e) {
@@ -96,17 +101,28 @@ class StreamCacheEntry {
 
 final Map<String, StreamCacheEntry> _streamCache = {};
 
-// Tier 1: Fast yt-dlp with Cloudflare WARP proxy
+// Tier 1: Fast yt-dlp with Cloudflare WARP proxy & active cookies
 Future<StreamCacheEntry?> _resolveViaYtDlp(String videoId) async {
   try {
-    final result = await Process.run('yt-dlp', [
+    final args = <String>[
       '--proxy',
       'socks5://127.0.0.1:40000',
+      '--no-playlist',
+      '--no-warnings',
+    ];
+
+    if (_cookieFilePath != null && File(_cookieFilePath!).existsSync()) {
+      args.addAll(['--cookies', _cookieFilePath!]);
+    }
+
+    args.addAll([
       '-f',
       'ba[ext=m4a]/ba',
       '-g',
       'https://www.youtube.com/watch?v=$videoId',
     ]);
+
+    final result = await Process.run('yt-dlp', args);
     if (result.exitCode == 0) {
       final lines = (result.stdout as String).trim().split('\n');
       final validUrls = lines.where((l) => l.trim().startsWith('http')).toList();
@@ -121,6 +137,8 @@ Future<StreamCacheEntry?> _resolveViaYtDlp(String videoId) async {
           expiresAt: DateTime.now().add(const Duration(hours: 3)),
         );
       }
+    } else {
+      print('[Extractor yt-dlp stderr] ${result.stderr}');
     }
   } catch (e) {
     print('[Extractor Info] yt-dlp error for $videoId: $e');
@@ -387,15 +405,26 @@ void main(List<String> args) async {
     final cleanFilename = '${artist.isNotEmpty ? '$artist - ' : ''}$title.m4a'.replaceAll(RegExp(r'[/\\?%*:|"<>"]'), '_');
 
     try {
-      final process = await Process.start('yt-dlp', [
+      final downloadArgs = <String>[
         '--proxy',
         'socks5://127.0.0.1:40000',
+        '--no-playlist',
+        '--no-warnings',
+      ];
+
+      if (_cookieFilePath != null && File(_cookieFilePath!).existsSync()) {
+        downloadArgs.addAll(['--cookies', _cookieFilePath!]);
+      }
+
+      downloadArgs.addAll([
         '-f',
         '140/ba[ext=m4a]/ba',
         '-o',
         '-',
         'https://www.youtube.com/watch?v=$videoId',
       ]);
+
+      final process = await Process.start('yt-dlp', downloadArgs);
 
       return Response.ok(
         process.stdout,
